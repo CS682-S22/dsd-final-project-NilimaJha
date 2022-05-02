@@ -1,4 +1,4 @@
-##A version of BitTorrent##
+##*A version of BitTorrent*##
 
 I will be developing a distributed leaderless peer-to-peer file-sharing system for this project.
 The idea for this project is derived from BitTorrent, which is available for concurrently sharing files among peers. 
