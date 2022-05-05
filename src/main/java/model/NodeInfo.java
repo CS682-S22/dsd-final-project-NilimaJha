@@ -54,7 +54,7 @@ public class NodeInfo {
     }
 
     /**
-     * setter for the attribute ip.
+     * getter for the attribute ip.
      * @param ip
      */
     public void setIp(String ip) {
