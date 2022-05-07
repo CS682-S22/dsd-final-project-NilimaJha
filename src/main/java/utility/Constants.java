@@ -13,10 +13,8 @@ public class Constants {
     public final static String PUBLISH_REQUEST = "PUBLISH";
     public final static String PULL_REQUEST = "PULL";
     public final static String DATA = "DATA";
-    public final static String PRODUCER = "PRODUCER";
-    public final static String CONSUMER = "CONSUMER";
-    public final static String BROKER = "BROKER";
-    public final static String LOAD_BALANCER = "LOAD-BALANCER";
+    public final static String PEER = "PEER";
+    public final static String TRACKER_NODE = "TRACKER_NODE";
     public final static String CONSUMER_PULL = "PULL";
     public final static String CONSUMER_PUSH = "PUSH";
     public final static String MESSAGE = "MESSAGE";
