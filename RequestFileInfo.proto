@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package tutorial;
+
+option java_package = "proto";
+option java_outer_classname = "RequestFileInfo";
+
+message RequestFileInfoDetails {
+  string senderName = 1;
+  string fileName = 2;
+  uint64 packetNumber = 3;
+  bool detailForPacket = 4;
+}

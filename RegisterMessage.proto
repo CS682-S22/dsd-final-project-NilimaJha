@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package tutorial;
+
+option java_package = "proto";
+option java_outer_classname = "RegisterMessage";
+
+message RegisterMessageDetails {
+  string senderName = 1;
+  string senderIp = 2;
+  uint32 senderPort = 3;
+  uint64 numberOfFilesAvailable = 4;
+  repeated bytes fileInfo = 5;
+}

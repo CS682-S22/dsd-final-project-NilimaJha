@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package tutorial;
+
+option java_package = "proto";
+option java_outer_classname = "FileMetadata";
+
+message FileMetadataDetails {
+  bool fileInfoAvailable = 1;
+  bool packetInfoAvailable = 2;
+  string fileName = 3;
+  uint64 fileSize = 4;
+  string checksum = 5;
+  uint64 totalNumberOfPackets = 6;
+  repeated bytes swarmMemberInfo = 7;
+}
