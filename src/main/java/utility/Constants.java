@@ -7,6 +7,7 @@ package utility;
 public class Constants {
     public final static int BUFFER_SIZE = 60000;
     public final static  int READ_TIMEOUT_TIME = 60000;
+    public final static int TRACKER_NODE_THREAD_POOL_SIZE = 20;
     public final static  int TOTAL_IN_MEMORY_MESSAGE_SIZE = 10; // number of message after which it will be flushed on to the segment file.
     public final static String INITIAL_SETUP = "INITIAL_SETUP";
     public final static String PUBLISH_REQUEST = "PUBLISH";
@@ -25,7 +26,6 @@ public class Constants {
     public final static String MESSAGE_NOT_AVAILABLE = "MESSAGE_NOT_AVAILABLE";
     public final static String TOPIC_NOT_AVAILABLE = "TOPIC_NOT_AVAILABLE";
     public final static int BROKER_THREAD_POOL_SIZE = 30;
-    public final static int LOAD_BALANCER_THREAD_POOL_SIZE = 20;
     public final static int MAX_RETRIES = 2;
     public final static int RETRIES_TIMEOUT = 15000;
     public final static long TIMEOUT_NANOS = 30000000000L; // 1 milli = 1000000 nano.
