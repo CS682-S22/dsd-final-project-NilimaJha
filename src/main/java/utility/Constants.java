@@ -16,7 +16,7 @@ public class Constants {
     public final static String PUBLISH_REQUEST = "PUBLISH";
     public final static String PULL_REQUEST = "PULL";
     public final static String DATA = "DATA";
-    public final static String PEER = "PEER";
+    public final static String NODE = "NODE";
     public final static String TRACKER_NODE = "TRACKER_NODE";
     public final static String CONSUMER_PULL = "PULL";
     public final static String CONSUMER_PUSH = "PUSH";

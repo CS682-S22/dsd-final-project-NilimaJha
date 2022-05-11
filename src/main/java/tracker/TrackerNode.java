@@ -19,7 +19,7 @@ import java.util.concurrent.Future;
  * Tracker Node class here trackerNode server keeps listening for the request on the given ip and port.
  * @author nilimajha
  */
-public class TrackerNode {
+public class TrackerNode implements Runnable {
     private static final Logger logger = LogManager.getLogger(TrackerNode.class);
     private NodeInfo thisNodeInfo;
     private boolean shutdown = false;
@@ -74,5 +74,10 @@ public class TrackerNode {
             logger.error("\n[ThreadId : " + Thread.currentThread().getId() + "] IOException while opening serverSocket" +
                     " connection. Error Message : " + e.getMessage());
         }
+    }
+
+    @Override
+    public void run() {
+        startTrackerNode();
     }
 }

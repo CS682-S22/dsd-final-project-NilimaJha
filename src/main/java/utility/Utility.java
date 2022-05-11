@@ -4,7 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import customeException.ConnectionClosedException;
 import model.Connection;
-import model.NodeInfo;
+import model.HostConfig;
+import model.TrackerConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -46,7 +47,7 @@ public class Utility {
      * @return true/false
      */
     public static boolean typeIsValid (String type) {
-        return type.equals(Constants.PEER) || type.equals(Constants.TRACKER_NODE);
+        return type.equals(Constants.NODE) || type.equals(Constants.TRACKER_NODE);
     }
 
     /**
@@ -111,24 +112,52 @@ public class Utility {
      * @param name name provided in the args
      * @return BrokerConfig
      */
-    public static NodeInfo extractTrackerNodeInfo(String fileName, String name) {
-        List<NodeInfo> trackerNodeList = null;
-        NodeInfo trackerNodeInfo = null;
+    public static HostConfig extractHostInfo(String fileName, String name) {
+        List<HostConfig> peerNodeList = null;
+        HostConfig peerConfig = null;
         try {
             Reader configReader = Files.newBufferedReader(Paths.get(fileName));
-            trackerNodeList = new Gson().fromJson(configReader, new TypeToken<List<NodeInfo>>() {}.getType());
+            peerNodeList = new Gson().fromJson(configReader, new TypeToken<List<HostConfig>>() {}.getType());
             configReader.close();
 
-            for (NodeInfo currentTrackerNodeInfo : trackerNodeList) {
-                if (currentTrackerNodeInfo.getName().equals(name)) {
-                    trackerNodeInfo = currentTrackerNodeInfo;
+            for (HostConfig peerNodeInfo : peerNodeList) {
+                if (peerNodeInfo.getNodeName().equals(name)) {
+                    peerConfig = peerNodeInfo;
                     break;
                 }
             }
         } catch (Exception ex) {
             logger.error("\nException Occurred. Error Message : " + ex.getMessage());
         }
-        return trackerNodeInfo;
+        return peerConfig;
+    }
+
+    /**
+     * reads configFile and returns BrokerInformation class obj
+     * which contains all the information of the producer or consumer
+     * whose name is provided.
+     * @param fileName config file name
+     * @param name name provided in the args
+     * @return BrokerConfig
+     */
+    public static TrackerConfig extractTrackerInfo(String fileName, String name) {
+        List<TrackerConfig> trackerDetailsList = null;
+        TrackerConfig trackerInfo = null;
+        try {
+            Reader configReader = Files.newBufferedReader(Paths.get(fileName));
+            trackerDetailsList = new Gson().fromJson(configReader, new TypeToken<List<TrackerConfig>>() {}.getType());
+            configReader.close();
+
+            for (TrackerConfig eachHostInfo : trackerDetailsList) {
+                if (eachHostInfo.getName().equals(name)) {
+                    trackerInfo = eachHostInfo;
+                    break;
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("\nException Occurred. Error Message : " + ex.getMessage());
+        }
+        return trackerInfo;
     }
 
     /**

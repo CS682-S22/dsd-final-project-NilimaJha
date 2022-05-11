@@ -29,18 +29,28 @@ import java.util.concurrent.Future;
  *
  * @author nilimajha
  */
-public class Peer implements Runnable {
-    private static final Logger logger = LogManager.getLogger(Peer.class);
+public class Host implements Runnable {
+    private static final Logger logger = LogManager.getLogger(Host.class);
     private NodeInfo thisNodeInfo;
     private NodeInfo trackerNodeInfo;
     private List<String> availableFileNames;
     private boolean shutdown;
     private AllSwarms allSwarms;
     private volatile boolean registered;
-    private ConnectionWithTracker connectionWithTracker;
     private ExecutorService threadPool = Executors.newFixedThreadPool(Constants.PEER_THREAD_POOL_SIZE); //thread pool of size 15
 
-    public Peer(String thisNodeName, String thisNodeIp, int thisNodePort, String trackerNodeName, String trackerNodeIp, int trackerNodePort, List<String> availableFileNames) {
+    /**
+     *
+     * @param thisNodeName
+     * @param thisNodeIp
+     * @param thisNodePort
+     * @param trackerNodeName
+     * @param trackerNodeIp
+     * @param trackerNodePort
+     * @param availableFileNames
+     */
+    public Host(String thisNodeName, String thisNodeIp, int thisNodePort, String trackerNodeName,
+                String trackerNodeIp, int trackerNodePort, List<String> availableFileNames) {
         this.thisNodeInfo = new NodeInfo(thisNodeName, thisNodeIp, thisNodePort);
         this.trackerNodeInfo = new NodeInfo(trackerNodeName, trackerNodeIp, trackerNodePort);
         this.availableFileNames = availableFileNames;
@@ -73,7 +83,8 @@ public class Peer implements Runnable {
                         return;
                     }
                 } catch (InterruptedException | ExecutionException e) {
-                    logger.error("\n[ThreadId : " + Thread.currentThread().getId() + "] Exception while establishing connection. Error Message : " + e.getMessage());
+                    logger.error("\n[ThreadId : " + Thread.currentThread().getId() +
+                            "] Exception while establishing connection. Error Message : " + e.getMessage());
                 }
 
                 //checking if the socketChannel is valid.
@@ -87,7 +98,8 @@ public class Peer implements Runnable {
                 }
             }
         } catch (IOException e) {
-            logger.error("\n[ThreadId : " + Thread.currentThread().getId() + "] IOException while opening serverSocket connection. Error Message : " + e.getMessage());
+            logger.error("\n[ThreadId : " + Thread.currentThread().getId() +
+                    "] IOException while opening serverSocket connection. Error Message : " + e.getMessage());
         }
     }
 
@@ -186,9 +198,17 @@ public class Peer implements Runnable {
 
     /**
      *
+     * @param fileName
+     */
+    public void download(String fileName) {
+        FileDownloader fileDownloader = new FileDownloader(fileName, trackerNodeInfo);
+    }
+
+    /**
+     *
      * @author nilimajha
      */
-    public class DownloadFile {
+    public class FileDownloader {
         private String fileName;
         private NodeInfo trackerNodeInfo;
         private AllSwarms allSwarms = AllSwarms.getAllSwarm(thisNodeInfo);
@@ -198,11 +218,12 @@ public class Peer implements Runnable {
          * Constructor
          * @param fileName
          */
-        public DownloadFile(String fileName, NodeInfo trackerNodeInfo) {
+        public FileDownloader(String fileName, NodeInfo trackerNodeInfo) {
             this.fileName = fileName;
             this.trackerNodeInfo = trackerNodeInfo;
             // create connection with tracker and store its information in connections with tracker class
             connectToTracker();
+            startThreadToDownload();
         }
 
         /**
