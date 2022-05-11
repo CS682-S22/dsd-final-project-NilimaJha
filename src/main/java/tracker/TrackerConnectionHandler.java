@@ -64,7 +64,7 @@ public class TrackerConnectionHandler implements Runnable {
                                         FileInfo.FileInfoDetails fileInfoDetails = eachFileInfo.unpack(FileInfo.FileInfoDetails.class);
                                         metadata.addFile(fileInfoDetails.getFileName(),
                                                 fileInfoDetails.getFileSize(),
-                                                fileInfoDetails.getChecksum(),
+                                                fileInfoDetails.getChecksum().toByteArray(),
                                                 fileInfoDetails.getTotalPackets());
                                         // adding this member in the current file swarm.
                                         metadata.addMemberToTheSwarm(fileInfoDetails.getFileName(), connectionWith,
@@ -79,6 +79,13 @@ public class TrackerConnectionHandler implements Runnable {
                                     .setSenderName(thisTrackerInfo.getName())
                                     .build());
                             connection.send(registerResponse.toByteArray());
+                        } else if (any.is(SetupForFileMessage.SetupForFileMessageDetails.class)) {
+                            SetupForFileMessage.SetupForFileMessageDetails setupMessage = any.unpack(SetupForFileMessage.SetupForFileMessageDetails.class);
+                            connectionWith = setupMessage.getSenderName();
+                            Any setupResponse = Any.pack(SetupForFileResponse.SetupForFileResponseDetails.newBuilder()
+                                    .setSenderName(thisTrackerInfo.getName())
+                                    .build());
+                            connection.send(setupResponse.toByteArray());
                         } else if (any.is(RequestFileInfo.RequestFileInfoDetails.class)) {
                             RequestFileInfo.RequestFileInfoDetails requestMessage =
                                     any.unpack(RequestFileInfo.RequestFileInfoDetails.class);
@@ -147,7 +154,7 @@ public class TrackerConnectionHandler implements Runnable {
                         .setFileInfoAvailable(true)
                         .setFileName(requestMessage.getFileName())
                         .setFileSize(metadata.getFileSize(requestMessage.getFileName()))
-                        .setChecksum(metadata.getChecksum(requestMessage.getFileName()))
+                        .setChecksum(ByteString.copyFrom(metadata.getChecksum(requestMessage.getFileName())))
                         .setTotalNumberOfPackets(metadata.getTotalNumberOfPackets(requestMessage.getFileName()))
                         .addAllSwarmMemberInfo(allPeerInfoByteList)
                         .build());
@@ -158,7 +165,7 @@ public class TrackerConnectionHandler implements Runnable {
                         .setPacketInfoAvailable(true)
                         .setFileName(requestMessage.getFileName())
                         .setFileSize(metadata.getFileSize(requestMessage.getFileName()))
-                        .setChecksum(metadata.getChecksum(requestMessage.getFileName()))
+                        .setChecksum(ByteString.copyFrom(metadata.getChecksum(requestMessage.getFileName())))
                         .setTotalNumberOfPackets(metadata.getTotalNumberOfPackets(requestMessage.getFileName()))
                         .addAllSwarmMemberInfo(allPeerInfoByteList)
                         .build());

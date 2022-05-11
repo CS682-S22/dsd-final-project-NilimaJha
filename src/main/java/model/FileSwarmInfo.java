@@ -9,10 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author nilimajha
  */
-public class FileSwarm {
+public class FileSwarmInfo {
     private String fileName;
     private long fileSize;
-    private String checksum;
+    private byte[] checksum;
     private long totalPackets;
     private ConcurrentHashMap<String, SwarmPeerInfo> swarmPeersInfo; // map to map the name of the peer with the other file related details.
 
@@ -20,7 +20,7 @@ public class FileSwarm {
      * Constructor
      * @param fileName
      */
-    public FileSwarm(String fileName, long fileSize, String checksum, long totalPackets) {
+    public FileSwarmInfo(String fileName, long fileSize, byte[] checksum, long totalPackets) {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.checksum = checksum;
@@ -97,7 +97,7 @@ public class FileSwarm {
      * getter for attribute checksum.
      * @return checksum
      */
-    public String getChecksum() {
+    public byte[] getChecksum() {
         return checksum;
     }
 

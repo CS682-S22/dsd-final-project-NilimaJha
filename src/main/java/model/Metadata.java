@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Metadata {
     private ConcurrentHashMap<String, NodeInfo> peerNameToItsInfoMap;
-    private ConcurrentHashMap<String, FileSwarm> fileToSwarmMap;
+    private ConcurrentHashMap<String, FileSwarmInfo> fileToSwarmMap;
     private static Metadata metadata = null;
 
     /**
@@ -53,8 +53,8 @@ public class Metadata {
      * @param fileName
      * @return
      */
-    public boolean addFile(String fileName, long fileSize, String checksum, long totalPackets) {
-        FileSwarm fileSwarm = new FileSwarm(fileName, fileSize, checksum, totalPackets);
+    public boolean addFile(String fileName, long fileSize, byte[] checksum, long totalPackets) {
+        FileSwarmInfo fileSwarm = new FileSwarmInfo(fileName, fileSize, checksum, totalPackets);
         fileToSwarmMap.putIfAbsent(fileName, fileSwarm);
         return true;
     }
@@ -145,8 +145,8 @@ public class Metadata {
      * @param fileName
      * @return
      */
-    public String getChecksum(String fileName) {
-       String checksum = null;
+    public byte[] getChecksum(String fileName) {
+       byte[] checksum = null;
        if (fileToSwarmMap.containsKey(fileName)) {
            checksum = fileToSwarmMap.get(fileName).getChecksum();
        }

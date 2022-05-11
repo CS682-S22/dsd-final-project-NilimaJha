@@ -37,16 +37,10 @@ public final class FileInfo {
     long getFileSize();
 
     /**
-     * <code>string checksum = 3;</code>
+     * <code>bytes checksum = 3;</code>
      * @return The checksum.
      */
-    java.lang.String getChecksum();
-    /**
-     * <code>string checksum = 3;</code>
-     * @return The bytes for checksum.
-     */
-    com.google.protobuf.ByteString
-        getChecksumBytes();
+    com.google.protobuf.ByteString getChecksum();
 
     /**
      * <code>uint64 totalPackets = 4;</code>
@@ -68,7 +62,7 @@ public final class FileInfo {
     }
     private FileInfoDetails() {
       fileName_ = "";
-      checksum_ = "";
+      checksum_ = com.google.protobuf.ByteString.EMPTY;
     }
 
     @java.lang.Override
@@ -113,9 +107,8 @@ public final class FileInfo {
               break;
             }
             case 26: {
-              java.lang.String s = input.readStringRequireUtf8();
 
-              checksum_ = s;
+              checksum_ = input.readBytes();
               break;
             }
             case 32: {
@@ -205,41 +198,14 @@ public final class FileInfo {
     }
 
     public static final int CHECKSUM_FIELD_NUMBER = 3;
-    private volatile java.lang.Object checksum_;
+    private com.google.protobuf.ByteString checksum_;
     /**
-     * <code>string checksum = 3;</code>
+     * <code>bytes checksum = 3;</code>
      * @return The checksum.
      */
     @java.lang.Override
-    public java.lang.String getChecksum() {
-      java.lang.Object ref = checksum_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        checksum_ = s;
-        return s;
-      }
-    }
-    /**
-     * <code>string checksum = 3;</code>
-     * @return The bytes for checksum.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getChecksumBytes() {
-      java.lang.Object ref = checksum_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        checksum_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getChecksum() {
+      return checksum_;
     }
 
     public static final int TOTALPACKETS_FIELD_NUMBER = 4;
@@ -273,8 +239,8 @@ public final class FileInfo {
       if (fileSize_ != 0L) {
         output.writeUInt64(2, fileSize_);
       }
-      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(checksum_)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, checksum_);
+      if (!checksum_.isEmpty()) {
+        output.writeBytes(3, checksum_);
       }
       if (totalPackets_ != 0L) {
         output.writeUInt64(4, totalPackets_);
@@ -295,8 +261,9 @@ public final class FileInfo {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt64Size(2, fileSize_);
       }
-      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(checksum_)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, checksum_);
+      if (!checksum_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, checksum_);
       }
       if (totalPackets_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
@@ -483,7 +450,7 @@ public final class FileInfo {
 
         fileSize_ = 0L;
 
-        checksum_ = "";
+        checksum_ = com.google.protobuf.ByteString.EMPTY;
 
         totalPackets_ = 0L;
 
@@ -572,9 +539,8 @@ public final class FileInfo {
         if (other.getFileSize() != 0L) {
           setFileSize(other.getFileSize());
         }
-        if (!other.getChecksum().isEmpty()) {
-          checksum_ = other.checksum_;
-          onChanged();
+        if (other.getChecksum() != com.google.protobuf.ByteString.EMPTY) {
+          setChecksum(other.getChecksum());
         }
         if (other.getTotalPackets() != 0L) {
           setTotalPackets(other.getTotalPackets());
@@ -715,47 +681,21 @@ public final class FileInfo {
         return this;
       }
 
-      private java.lang.Object checksum_ = "";
+      private com.google.protobuf.ByteString checksum_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>string checksum = 3;</code>
+       * <code>bytes checksum = 3;</code>
        * @return The checksum.
        */
-      public java.lang.String getChecksum() {
-        java.lang.Object ref = checksum_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          checksum_ = s;
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      @java.lang.Override
+      public com.google.protobuf.ByteString getChecksum() {
+        return checksum_;
       }
       /**
-       * <code>string checksum = 3;</code>
-       * @return The bytes for checksum.
-       */
-      public com.google.protobuf.ByteString
-          getChecksumBytes() {
-        java.lang.Object ref = checksum_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          checksum_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>string checksum = 3;</code>
+       * <code>bytes checksum = 3;</code>
        * @param value The checksum to set.
        * @return This builder for chaining.
        */
-      public Builder setChecksum(
-          java.lang.String value) {
+      public Builder setChecksum(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -765,28 +705,12 @@ public final class FileInfo {
         return this;
       }
       /**
-       * <code>string checksum = 3;</code>
+       * <code>bytes checksum = 3;</code>
        * @return This builder for chaining.
        */
       public Builder clearChecksum() {
         
         checksum_ = getDefaultInstance().getChecksum();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>string checksum = 3;</code>
-       * @param value The bytes for checksum to set.
-       * @return This builder for chaining.
-       */
-      public Builder setChecksumBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
-        
-        checksum_ = value;
         onChanged();
         return this;
       }
@@ -890,7 +814,7 @@ public final class FileInfo {
     java.lang.String[] descriptorData = {
       "\n\016FileInfo.proto\022\010tutorial\"]\n\017FileInfoDe" +
       "tails\022\020\n\010fileName\030\001 \001(\t\022\020\n\010fileSize\030\002 \001(" +
-      "\004\022\020\n\010checksum\030\003 \001(\t\022\024\n\014totalPackets\030\004 \001(" +
+      "\004\022\020\n\010checksum\030\003 \001(\014\022\024\n\014totalPackets\030\004 \001(" +
       "\004B\021\n\005protoB\010FileInfob\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
