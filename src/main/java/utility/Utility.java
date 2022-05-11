@@ -13,6 +13,8 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -166,21 +168,21 @@ public class Utility {
 
     /**
      * tries to establish connection with the host running on the given IP and Port.
-     * @param memberIP
-     * @param memberPort
+     * @param nodeIP
+     * @param nodePort
      * @return Connection or null
      */
-    public static Connection establishConnection(String memberIP, int memberPort) throws ConnectionClosedException {
+    public static Connection establishConnection(String nodeIP, int nodePort) throws ConnectionClosedException {
         AsynchronousSocketChannel clientSocket = null;
         Connection connection = null;
         try {
             clientSocket = AsynchronousSocketChannel.open();
-            InetSocketAddress brokerAddress = new InetSocketAddress(memberIP, memberPort);
+            InetSocketAddress brokerAddress = new InetSocketAddress(nodeIP, nodePort);
             logger.info("\n[Connecting To Member] BrokerIP : "
-                    + memberIP + " BrokerPort : " + memberPort);
+                    + nodeIP + " BrokerPort : " + nodePort);
             Future<Void> futureSocket = clientSocket.connect(brokerAddress);
             futureSocket.get();
-            logger.info("\n[Connected to Member.]");
+            logger.info("\n[Connected to node.]");
             connection = new Connection(clientSocket); //connection established with this member.
         } catch (IOException | ExecutionException | InterruptedException e) {
             logger.error(e.getMessage());
@@ -189,4 +191,50 @@ public class Utility {
         return connection;
     }
 
+    /**
+     * creates checksum of the file given and returns it.
+     * @return
+     */
+    public static byte[] createChecksum(String fileName) {
+        MessageDigest digest = null;
+        byte[] checksum = null;
+        byte[] chunk = new byte[1000];
+        int count = 0;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+            try (FileInputStream fileInputStream = new FileInputStream(fileName);) {
+                while ((count = fileInputStream.read(chunk)) != -1) {
+                    digest.update(chunk, 0, count);
+                }
+                checksum = digest.digest();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return checksum;
+    }
+
+    /**
+     * creates checksum of the file given and returns it.
+     * @return
+     */
+    public static long getTotalPacketOfFile(long fileSize) {
+        double totalPackets = 0;
+        if (fileSize > 0) {
+            totalPackets = (double) fileSize / (double) Constants.MAX_PACKET_SIZE;
+        }
+        return (long) Math.ceil(totalPackets);
+    }
+
+    /**
+     * method calculates the offset of the current packet in the file.
+     * @param packetNumber
+     * @return packetOffset
+     */
+    public static long offsetCalculator(long packetNumber) {
+        long packetOffset = packetNumber * Constants.MAX_PACKET_SIZE;
+        return packetOffset;
+    }
 }
