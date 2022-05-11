@@ -8,6 +8,6 @@ option java_outer_classname = "FileInfo";
 message FileInfoDetails {
   string fileName = 1;
   uint64 fileSize = 2;
-  string checksum = 3;
+  bytes checksum = 3;
   uint64 totalPackets = 4;
 }

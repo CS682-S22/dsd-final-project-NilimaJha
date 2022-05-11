@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package tutorial;
+
+option java_package = "proto";
+option java_outer_classname = "InitialMessage";
+
+message InitialMessageDetails {
+  string peerName = 1;
+  string peerIp = 2;
+  uint32 peerPort = 3;
+  string fileToDownload = 4;
+}

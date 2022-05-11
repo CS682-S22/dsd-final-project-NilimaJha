@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package tutorial;
+
+option java_package = "proto";
+option java_outer_classname = "InitialSetupDoneAck";
+
+message InitialSetupDoneAckDetail {
+  bool successful = 1;
+  string fileToDownload = 2;
+}

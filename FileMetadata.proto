@@ -10,7 +10,7 @@ message FileMetadataDetails {
   bool packetInfoAvailable = 2;
   string fileName = 3;
   uint64 fileSize = 4;
-  string checksum = 5;
+  bytes checksum = 5;
   uint64 totalNumberOfPackets = 6;
   repeated bytes swarmMemberInfo = 7;
 }

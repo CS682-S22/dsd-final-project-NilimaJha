@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package tutorial;
+
+option java_package = "proto";
+option java_outer_classname = "SetupForFileMessage";
+
+message SetupForFileMessageDetails {
+  string senderName = 1;
+  string senderIp = 2;
+  uint32 senderPort = 3;
+  string fileToBeDownloaded = 4;
+}
