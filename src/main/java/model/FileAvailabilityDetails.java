@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- *
+ * class stores the fileAvailability details on the peer.
  * @author nilimajha
  */
-public class FileRelatedInfo {
+public class FileAvailabilityDetails {
+    private String peerName;
     private String fileName;
-    private long fileSize;
     private long totalPacket;
     private boolean entireFileAvailable;
     private ArrayList<Long> availablePacketList;
@@ -17,16 +17,32 @@ public class FileRelatedInfo {
 
     /**
      * Constructor
-     * @param fileName
-     * @param fileSize
-     * @param totalPacket
+     *
+     * @param peerName
      */
-    public FileRelatedInfo (String fileName, long fileSize, long totalPacket, boolean entireFileAvailable) {
+    public FileAvailabilityDetails(String peerName, String fileName, long totalPacket, boolean entireFileAvailable) {
+        this.peerName = peerName;
         this.fileName = fileName;
-        this.fileSize = fileSize;
         this.totalPacket = totalPacket;
         this.entireFileAvailable = entireFileAvailable;
         this.availablePacketList = new ArrayList<>();
+    }
+
+    /**
+     * method to add new packet in the list of the packet available at the current peer.
+     * @param packetNum
+     * @return
+     */
+    public boolean updatePacketInfo(long packetNum) {
+        lock.writeLock().lock();
+        if (!getAvailablePacketList().contains(packetNum)) {
+            getAvailablePacketList().add(packetNum);
+        }
+        if (getAvailablePacketList().size() == getTotalPacket()) {
+            setEntireFileAvailable(true);
+        }
+        lock.writeLock().unlock();
+        return true;
     }
 
     /**
@@ -35,14 +51,6 @@ public class FileRelatedInfo {
      */
     public String getFileName() {
         return fileName;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public long getFileSize() {
-        return fileSize;
     }
 
     /**
@@ -76,14 +84,6 @@ public class FileRelatedInfo {
      *
      * @return
      */
-    public ReentrantReadWriteLock getLock() {
-        return lock;
-    }
-
-    /**
-     *
-     * @return
-     */
     public boolean isEntireFileAvailable() {
         return entireFileAvailable;
     }
@@ -98,34 +98,10 @@ public class FileRelatedInfo {
 
     /**
      *
-     * @param fileSize
-     */
-    public void setFileSize(int fileSize) {
-        this.fileSize = fileSize;
-    }
-
-    /**
-     *
      * @param totalPacket
      */
     public void setTotalPacket(int totalPacket) {
         this.totalPacket = totalPacket;
-    }
-
-    /**
-     *
-     * @param packetAvailable
-     */
-    public void setAvailablePacketList(ArrayList<Long> packetAvailable) {
-        this.availablePacketList = packetAvailable;
-    }
-
-    /**
-     *
-     * @param lock
-     */
-    public void setLock(ReentrantReadWriteLock lock) {
-        this.lock = lock;
     }
 
     /**
@@ -135,5 +111,4 @@ public class FileRelatedInfo {
     public void setEntireFileAvailable(boolean entireFileAvailable) {
         this.entireFileAvailable = entireFileAvailable;
     }
-
 }

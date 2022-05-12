@@ -202,13 +202,14 @@ public class Utility {
      * @return Connection or null
      */
     public static Connection establishConnection(String nodeIP, int nodePort) throws ConnectionClosedException {
+        logger.info("\nNow will connect.....");
         AsynchronousSocketChannel clientSocket = null;
         Connection connection = null;
         try {
             clientSocket = AsynchronousSocketChannel.open();
             InetSocketAddress brokerAddress = new InetSocketAddress(nodeIP, nodePort);
-            logger.info("\n[Connecting To Member] BrokerIP : "
-                    + nodeIP + " BrokerPort : " + nodePort);
+            logger.info("\n[Connecting] Host at IP : "
+                    + nodeIP + " Port : " + nodePort);
             Future<Void> futureSocket = clientSocket.connect(brokerAddress);
             futureSocket.get();
             logger.info("\n[Connected to node.]");

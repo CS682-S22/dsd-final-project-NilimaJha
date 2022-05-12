@@ -7,7 +7,7 @@ import customeException.ConnectionClosedException;
 import model.AllSwarms;
 import model.Connection;
 import model.NodeInfo;
-import model.PeerNodeInfo;
+import model.SwarmMemberDetails;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proto.DownloadRequest;
@@ -37,6 +37,7 @@ public class RequestProcessor implements Runnable {
         this.thisNodeInfo = thisNodeInfo;
         this.connectionWithPeer = newConnection;
         this.allSwarms = AllSwarms.getAllSwarm(thisNodeInfo);
+        logger.info("\nAssigned new connection to the request processor.");
     }
 
     /**
@@ -53,13 +54,17 @@ public class RequestProcessor implements Runnable {
     public void start() {
         // start receiving message
         while (peerNodeInfo == null) {
+            logger.info("\nWaiting for InitialMessage.");
             try {
                 byte[] receivedMessage = connectionWithPeer.receive();
                 if (receivedMessage != null) { // received initial message
                     // call decode packet and then call decode message inside
+                    logger.info("\nReceived something.");
                     try {
                         Any any = Any.parseFrom(receivedMessage);
+                        logger.info("\nReceived something. :" + any.is(InitialMessage.InitialMessageDetails.class));
                         if (any.is(InitialMessage.InitialMessageDetails.class)) {
+                            logger.info("\nReceived Initial Message.");
                             parseInitialMessage(any);
                         }
                     } catch (InvalidProtocolBufferException e) {
@@ -92,28 +97,60 @@ public class RequestProcessor implements Runnable {
                             initialMessageDetails.getPeerIp(),
                             initialMessageDetails.getPeerPort());
                     fileName = initialMessageDetails.getFileToDownload();
+                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] InitialMessageReceived from " + peerNodeInfo.getName() +
+                            " regarding file " + fileName);
+
+                    // send initial setup ack
+                    try {
+                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Sending initialSetUpAck...");
+                        connectionWithPeer.send(getInitialSetupACK());
+                    } catch (ConnectionClosedException e) {
+                        logger.info("\n[ThreadId: " + Thread.currentThread().getId() + "] " + e.getMessage());
+                        connectionWithPeer.closeConnection();
+                    }
 
                     // check is you are downloading this file
                     if (allSwarms.fileAvailable(fileName)
                             && allSwarms.isBeingDownloaded(fileName)
                             && !allSwarms.peerAvailableInFileSwarm(fileName, peerNodeInfo.getName())) {
                         try {
-                            Connection connection = Utility.establishConnection(initialMessageDetails.getPeerIp(),
+                            Connection peerConnection = Utility.establishConnection(initialMessageDetails.getPeerIp(),
                                     initialMessageDetails.getPeerPort());
-                            if (connection != null) {
-                                PeerNodeInfo newPeer = new PeerNodeInfo(peerNodeInfo.getName(), peerNodeInfo.getIp(),
-                                        peerNodeInfo.getPort(), connection);
+                            if (peerConnection != null) {
+                                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Sending connection to " + peerNodeInfo.getName());
+
+                                // do initial setup
+                                Any initialMessage = Any.pack(InitialMessage.InitialMessageDetails
+                                        .newBuilder()
+                                        .setPeerName(thisNodeInfo.getName())
+                                        .setPeerIp(thisNodeInfo.getIp())
+                                        .setPeerPort(thisNodeInfo.getPort())
+                                        .setFileToDownload(fileName)
+                                        .build());
+                                peerConnection.send(initialMessage.toByteArray());
+                                byte[] response = null;
+                                while (response == null) {
+                                    response = peerConnection.receive();
+                                }
+                                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] initial response message received from " + peerNodeInfo.getName() + " for file " + fileName);
+                                Any initialMessageResponse = Any.parseFrom(response);
+                                if (initialMessageResponse.is(InitialSetupDoneAck.InitialSetupDoneAckDetail.class)) {
+                                    InitialSetupDoneAck.InitialSetupDoneAckDetail initialSetupDoneAckDetail
+                                            = initialMessageResponse.unpack(InitialSetupDoneAck.InitialSetupDoneAckDetail.class);
+                                }
+
+                                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Adding new member in the swarm of file " + fileName);
+                                SwarmMemberDetails newPeer = new SwarmMemberDetails(
+                                        peerNodeInfo.getName(),
+                                        peerNodeInfo.getIp(),
+                                        peerNodeInfo.getPort(),
+                                        peerConnection);
                                 allSwarms.addNewPeerInTheFileSwarm(initialMessageDetails.getFileToDownload(), newPeer);
                             }
                         } catch (ConnectionClosedException e) {
                             e.printStackTrace();
                         }
                     }
-                    // yes -> check is peer already exist
-                        // yes -> do not add this peer again.
-                        // no  -> create another connection with this peer and add this peer into the swarm
-                    // no -> do not add this peer.
-                    // start listening for the incoming request.
                 } else {
                     try {
                         // send initial setup ack
@@ -146,22 +183,27 @@ public class RequestProcessor implements Runnable {
      *
      */
     public void handlePeer() {
-        logger.info("\n[ThreadId: " + Thread.currentThread().getId() + "] Handle Producer.");
+        logger.info("\n[ThreadId: " + Thread.currentThread().getId() + "] Handle Peer.");
         while (connectionWithPeer.connectionIsOpen()) {
+            logger.info("\n[ThreadId: " + Thread.currentThread().getId() + "] Here 1.");
             try {
                 byte[] message = connectionWithPeer.receive();
                 if (message != null) {
+                    logger.info("\n[ThreadId: " + Thread.currentThread().getId() + "] Received something.");
                     try {
                         Any any = Any.parseFrom(message);
                         if (any.is(DownloadRequest.DownloadRequestDetail.class)) {
                             DownloadRequest.DownloadRequestDetail downloadRequestMessage =
                                     any.unpack(DownloadRequest.DownloadRequestDetail.class);
+                            logger.info("\n[ThreadId: " + Thread.currentThread().getId() + "] Received Request is of type Download Request.");
                             // get packet data from the file in the allSwarm
+                            logger.info("\n[ThreadId: " + Thread.currentThread().getId() + "] Getting packet details from file.");
                             byte[] packetData = allSwarms.getPacketDataFromFile(downloadRequestMessage.getFileName(),
                                     downloadRequestMessage.getPacketNumber());
                             Any responseMessage = null;
                             // create response message.
                             if (packetData == null) {
+                                logger.info("\npacket Data is not available..");
                                 responseMessage = Any.pack(DownloadRequestResponse.DownloadRequestResponseDetail
                                         .newBuilder()
                                         .setFileName(downloadRequestMessage.getFileName())
@@ -169,6 +211,7 @@ public class RequestProcessor implements Runnable {
                                         .setDataAvailable(false)
                                         .build());
                             } else {
+                                logger.info("\npacket Data is not available.." + downloadRequestMessage.getPacketNumber());
                                 responseMessage = Any.pack(DownloadRequestResponse.DownloadRequestResponseDetail
                                         .newBuilder()
                                         .setFileName(downloadRequestMessage.getFileName())
@@ -177,6 +220,7 @@ public class RequestProcessor implements Runnable {
                                         .setPacketData(ByteString.copyFrom(packetData))
                                         .build());
                             }
+                            logger.info("\nSending DownloadRequestResponse...");
                             connectionWithPeer.send(responseMessage.toByteArray());
                         }
                     } catch (InvalidProtocolBufferException e) {

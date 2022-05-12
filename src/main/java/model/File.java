@@ -1,5 +1,7 @@
 package model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utility.Constants;
 import utility.Utility;
 
@@ -19,6 +21,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author nilimajha
  */
 public class File {
+    private static final Logger logger = LogManager.getLogger(File.class);
     private String fileName;
     private long fileSize;
     private byte[] checksum;
@@ -54,24 +57,25 @@ public class File {
         this.tempFileName = "temp " + fileName;
         this.entireFileAvailable = entireFileAvailable;
         if (!entireFileAvailable) {
+            this.eachDownloadedPacketInfo = new ConcurrentHashMap<>();
             this.listOfToBeDownloadedPacketNumber = new ArrayList<>();
             for (long i = 0; i < totalPackets; i++) {
                 this.listOfToBeDownloadedPacketNumber.add(i);
             }
-            fileWriterInitializer(tempFileWriter, tempFileName);
-            fileReaderInitializer(tempFileReader, tempFileName);
-            fileWriterInitializer(finalFileWriter, fileName);
-            this.offset.set(0);
+            this.tempFileWriter = fileWriterInitializer(tempFileName);
+            this.tempFileReader = fileReaderInitializer(tempFileName);
+            this.finalFileWriter = fileWriterInitializer(fileName);
+            this.offset = new AtomicLong(0);
         }
-        fileReaderInitializer(finalFileReader, fileName);
+        this.finalFileReader = fileReaderInitializer(fileName);
     }
 
     /**
      * initialises the FileInputStream named fileWriter of the class and deletes the file if already exist.
-     * @param fileWriter
      * @param fileName
      */
-    public void fileWriterInitializer(FileOutputStream fileWriter, String fileName) {
+    public FileOutputStream fileWriterInitializer(String fileName) {
+        FileOutputStream fileWriter = null;
         java.io.File outputFile = new java.io.File(fileName);
         if(outputFile.exists()){
             outputFile.delete();
@@ -81,19 +85,21 @@ public class File {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+        return fileWriter;
     }
 
     /**
      * initialises the FileInputStream named fileReader of the class.
-     * @param fileReader
      * @param fileName
      */
-    private void fileReaderInitializer(FileInputStream fileReader, String fileName) {
+    private FileInputStream fileReaderInitializer(String fileName) {
+        FileInputStream fileReader = null;
         try {
             fileReader = new FileInputStream(fileName);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return fileReader;
     }
 
     /**
@@ -155,9 +161,10 @@ public class File {
      * writing data directly on the file using FileOutputStream named fileWriter.
      */
     public void writeOnFinalFile(byte[] message) throws IOException {
-        tempFileWriterLock.writeLock().lock();        //flushing data on the file on file
-        tempFileWriter.write(message);
-        tempFileWriterLock.writeLock().unlock();
+        finalFileWriterLock.writeLock().lock();        //flushing data on the file on file
+        logger.info("\nWriting on final file " + finalFileWriter.getChannel().position());
+        finalFileWriter.write(message);
+        finalFileWriterLock.writeLock().unlock();
     }
 
     /**
@@ -192,14 +199,18 @@ public class File {
         long packetOffset;
         if (entireFileAvailable && packetNumber < totalPackets) {
             packetOffset = Utility.offsetCalculator(packetNumber);
-            if (packetNumber < (totalPackets - 1)) {
+            logger.info("\n Reading packet " + packetNumber + " data from final file from offset " + packetOffset);
+            if (packetNumber < (totalPackets - 2)) {
+                logger.info("\nPacket is not the last. Last packet number " + (totalPackets - 1));
                 packetMessage = new byte[Constants.MAX_PACKET_SIZE];
             } else {
+                logger.info("\nPacket is the last. Last packet number " + (totalPackets - 1));
                 packetMessage = new byte[(int) (fileSize - packetOffset)];
             }
             try {
                 finalFileReader.getChannel().position(packetOffset);
-                finalFileReader.read(packetMessage);
+                int totalBytesRead = finalFileReader.read(packetMessage);
+                logger.info("\n total bytes read " + totalBytesRead);
             } catch (IOException e) {
                 packetMessage = null;
                 e.printStackTrace();
@@ -216,9 +227,13 @@ public class File {
     public byte[] getPacketData(long packetNumber) {
         byte[] packetData = null;
         if (entireFileAvailable && packetNumber < totalPackets) {
+            logger.info("\nPacket number " + packetNumber + " available.");
             packetData = readFromFinalFile(packetNumber);
-        } else if (!entireFileAvailable){
+        } else if (!entireFileAvailable) {
+            logger.info("\nPacket number " + packetNumber + " available in temp file.");
             packetData = readFromTempFile(packetNumber);
+        } else {
+            logger.info("\nPacket number " + packetNumber + " is not available.");
         }
         return packetData;
     }
@@ -235,9 +250,12 @@ public class File {
                 tempFileReaderLock.writeLock().lock();
                 long currentPacketOffset = eachDownloadedPacketInfo.get(rearrangedPacketNumber).getInitialOffset();
                 byte[] packetMessage = new byte[(int) eachDownloadedPacketInfo.get(rearrangedPacketNumber).getPacketSize()];
+                tempFileReader.getChannel().position(currentPacketOffset);
+                logger.info("\nReading data from offset " + currentPacketOffset + " from temp file.");
                 tempFileReader.read(packetMessage);
                 tempFileReaderLock.writeLock().unlock();
-                finalFileWriter.write(packetMessage);
+                writeOnFinalFile(packetMessage);
+//                finalFileWriter.write(packetMessage);
                 rearrangedPacketNumber++;
             }
             entireFileAvailable = true;

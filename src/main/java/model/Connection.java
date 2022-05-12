@@ -80,6 +80,7 @@ public class Connection {
                     }
                 } else {
                     if (readHaveSomething == -1) {
+                        logger.info("\nClosing the connection....");
                         closeConnection();
                     }
                 }

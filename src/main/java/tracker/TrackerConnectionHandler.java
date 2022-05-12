@@ -50,31 +50,37 @@ public class TrackerConnectionHandler implements Runnable {
                         if (any.is(RegisterMessage.RegisterMessageDetails.class)) {
                             RegisterMessage.RegisterMessageDetails registerMessage =
                                     any.unpack(RegisterMessage.RegisterMessageDetails.class);
+                            logger.info("\nReceived Register Message from " + registerMessage.getSenderName());
                             connectionWith = registerMessage.getSenderName();
                             // add peer in peer list.
                             metadata.addNewPeer(registerMessage.getSenderName(),
                                     registerMessage.getSenderIp(),
                                     registerMessage.getSenderPort());
                             // create file entry in file list.
+                            logger.info("\nTotal number of Files Available at " + registerMessage.getSenderName() +
+                                    " is " + registerMessage.getNumberOfFilesAvailable());
                             if (registerMessage.getNumberOfFilesAvailable() > 0) {
                                 List<ByteString> availableFileList = registerMessage.getFileInfoList();
                                 for (ByteString eachFileInfoByteString : availableFileList) {
                                     Any eachFileInfo = Any.parseFrom(eachFileInfoByteString.toByteArray());
                                     if (eachFileInfo.is(FileInfo.FileInfoDetails.class)) {
                                         FileInfo.FileInfoDetails fileInfoDetails = eachFileInfo.unpack(FileInfo.FileInfoDetails.class);
+                                        logger.info("\nAdding file " + fileInfoDetails.getFileName() + " in the meta data.");
                                         metadata.addFile(fileInfoDetails.getFileName(),
                                                 fileInfoDetails.getFileSize(),
                                                 fileInfoDetails.getChecksum().toByteArray(),
                                                 fileInfoDetails.getTotalPackets());
+                                        logger.info("\nAdding this Host To the List of host.");
                                         // adding this member in the current file swarm.
                                         metadata.addMemberToTheSwarm(fileInfoDetails.getFileName(), connectionWith,
                                                 true);
                                     }
                                 }
                             }
-                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
-                                    "] Received register request from " + connectionWith +
-                                    " of type RequestLeaderAndMembersInfo.");
+//                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+//                                    "] Received register request from " + connectionWith +
+//                                    " of type RequestLeaderAndMembersInfo.");
+                            logger.info("\nSending response to the registerMessage...");
                             Any registerResponse = Any.pack(RegisterResponse.RegisterResponseDetails.newBuilder()
                                     .setSenderName(thisTrackerInfo.getName())
                                     .build());
@@ -82,6 +88,9 @@ public class TrackerConnectionHandler implements Runnable {
                         } else if (any.is(SetupForFileMessage.SetupForFileMessageDetails.class)) {
                             SetupForFileMessage.SetupForFileMessageDetails setupMessage = any.unpack(SetupForFileMessage.SetupForFileMessageDetails.class);
                             connectionWith = setupMessage.getSenderName();
+                            // add this host to the file it wants information about
+                            logger.info("\nAdding " + connectionWith + " to the swarm for file " + setupMessage.getFileToBeDownloaded());
+                            metadata.addMemberToTheSwarm(setupMessage.getFileToBeDownloaded(), setupMessage.getSenderName(), false);
                             Any setupResponse = Any.pack(SetupForFileResponse.SetupForFileResponseDetails.newBuilder()
                                     .setSenderName(thisTrackerInfo.getName())
                                     .build());

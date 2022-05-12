@@ -1,5 +1,9 @@
 package model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import peer.RequestProcessor;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -7,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author nilimajha
  */
 public class AllSwarms {
+    private static final Logger logger = LogManager.getLogger(AllSwarms.class);
     private NodeInfo thisPeerInfo;
     //file info
     private ConcurrentHashMap<String, Swarm> fileToItsSwarmMap;
@@ -46,7 +51,7 @@ public class AllSwarms {
      * method add new peer in the already existing swarm of the file.
      * @return
      */
-    public boolean addNewPeerInTheFileSwarm(String fileName, PeerNodeInfo peerNodeInfo) {
+    public boolean addNewPeerInTheFileSwarm(String fileName, SwarmMemberDetails peerNodeInfo) {
         if (fileToItsSwarmMap.containsKey(fileName)) {
             fileToItsSwarmMap.get(fileName).addNewPeerInTheSwarm(peerNodeInfo);
         }
@@ -62,6 +67,7 @@ public class AllSwarms {
     public byte[] getPacketDataFromFile(String fileName, long packetNumber) {
         byte[] packetData = null;
         if (fileToItsSwarmMap.containsKey(fileName)) {
+            logger.info("\n" + fileName + " available.");
             packetData = fileToItsSwarmMap.get(fileName).getPacketData(packetNumber);
         }
         return packetData;

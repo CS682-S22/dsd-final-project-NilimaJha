@@ -7,9 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author nilimajha
  */
 public class Swarm {
-    private ConcurrentHashMap<String, PeerNodeInfo> peerNameToDetailMap;
+    private ConcurrentHashMap<String, SwarmMemberDetails> peerNameToDetailMap;
     private File file;
-//    private ConnectionWithTracker connectionWithTracker = new ConnectionWithTracker();
 
     /**
      * Constructor
@@ -25,7 +24,7 @@ public class Swarm {
      * @param peerNodeInfo
      * @return
      */
-    public boolean addNewPeerInTheSwarm(PeerNodeInfo peerNodeInfo) {
+    public boolean addNewPeerInTheSwarm(SwarmMemberDetails peerNodeInfo) {
         peerNameToDetailMap.putIfAbsent(peerNodeInfo.getName(), peerNodeInfo);
         return true;
     }
@@ -107,7 +106,7 @@ public class Swarm {
      * @param peerName
      * @return
      */
-    public PeerNodeInfo getPeerNode(String peerName) {
+    public SwarmMemberDetails getPeerNode(String peerName) {
         if (peerNameToDetailMap.containsKey(peerName)) {
             return peerNameToDetailMap.get(peerName);
         }

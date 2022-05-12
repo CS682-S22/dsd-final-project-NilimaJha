@@ -6,26 +6,27 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- *
+ * class to store file related details and also about the hosts available in the Swarm.
  * @author nilimajha
  */
-public class FileSwarmInfo {
+public class FileSwarmDetails {
     private String fileName;
     private long fileSize;
     private byte[] checksum;
     private long totalPackets;
-    private ConcurrentHashMap<String, SwarmPeerInfo> swarmPeersInfo; // map to map the name of the peer with the other file related details.
+    // map to map the name of the peer with the other file related details on that peer.
+    private ConcurrentHashMap<String, FileAvailabilityDetails> peerNameToFileAvailabilityDetailsMap;
 
     /**
      * Constructor
      * @param fileName
      */
-    public FileSwarmInfo(String fileName, long fileSize, byte[] checksum, long totalPackets) {
+    public FileSwarmDetails(String fileName, long fileSize, byte[] checksum, long totalPackets) {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.checksum = checksum;
         this.totalPackets = totalPackets;
-        this.swarmPeersInfo = new ConcurrentHashMap<>();
+        this.peerNameToFileAvailabilityDetailsMap = new ConcurrentHashMap<>();
     }
 
     /**
@@ -34,8 +35,8 @@ public class FileSwarmInfo {
      * @return
      */
     public boolean addMemberInSwarm(String peerName, boolean entireFileAvailable) {
-        SwarmPeerInfo peerInfo = new SwarmPeerInfo(peerName, fileName, fileSize, totalPackets, entireFileAvailable);
-        swarmPeersInfo.putIfAbsent(peerName, peerInfo);
+        FileAvailabilityDetails peerInfo = new FileAvailabilityDetails(peerName, fileName, totalPackets, entireFileAvailable);
+        peerNameToFileAvailabilityDetailsMap.putIfAbsent(peerName, peerInfo);
         return true;
     }
 
@@ -44,8 +45,8 @@ public class FileSwarmInfo {
      * @return
      */
     public boolean updateSwarmMemberPacketAvailableInfo(String peerName, long packetNumber) {
-        if (swarmPeersInfo.containsKey(peerName)) {
-            swarmPeersInfo.get(peerName).updatePacketInfo(packetNumber);
+        if (peerNameToFileAvailabilityDetailsMap.containsKey(peerName)) {
+            peerNameToFileAvailabilityDetailsMap.get(peerName).updatePacketInfo(packetNumber);
         }
         return true;
     }
@@ -56,7 +57,7 @@ public class FileSwarmInfo {
      */
     public List<String> getAllPeerNameList() {
         List<String> peerNameList = new ArrayList<>();
-        for (Map.Entry<String, SwarmPeerInfo> eachPeer : swarmPeersInfo.entrySet()) {
+        for (Map.Entry<String, FileAvailabilityDetails> eachPeer : peerNameToFileAvailabilityDetailsMap.entrySet()) {
             peerNameList.add(eachPeer.getKey());
         }
         return peerNameList;
@@ -68,9 +69,9 @@ public class FileSwarmInfo {
      */
     public List<String> getPeerNameListWithGivenPacket(long packetNumber) {
         List<String> peerNameList = new ArrayList<>();
-        for (Map.Entry<String, SwarmPeerInfo> eachPeer : swarmPeersInfo.entrySet()) {
-            if (eachPeer.getValue().getFileRelatedInfo().isEntireFileAvailable()
-                    || eachPeer.getValue().getFileRelatedInfo().isPacketAvailable(packetNumber)) {
+        for (Map.Entry<String, FileAvailabilityDetails> eachPeer : peerNameToFileAvailabilityDetailsMap.entrySet()) {
+            if (eachPeer.getValue().isEntireFileAvailable()
+                    || eachPeer.getValue().isPacketAvailable(packetNumber)) {
                 peerNameList.add(eachPeer.getKey());
             }
         }

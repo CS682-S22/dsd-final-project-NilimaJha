@@ -6,9 +6,9 @@ import java.util.List;
  *
  * @author nilimajha
  */
-public class PeerConfig {
+public class HostConfig {
     private String NodeName;
-    private String NodeIp;
+    private String NodeIP;
     private int NodePort;
     private String TrackerNodeName;
     private String TrackerNodeIp;
@@ -18,23 +18,23 @@ public class PeerConfig {
 
     /**
      * Constructor
-     * 
+     *
      * @param nodeName
      * @param nodeIp
      * @param nodePort
      * @param trackerNodeName
-     * @param trackerNodeIp
+     * @param trackerNodeIP
      * @param trackerNodePort
      * @param availableFiles
      * @param download
      */
-    public PeerConfig(String nodeName, String nodeIp, int nodePort, String trackerNodeName, String trackerNodeIp,
+    public HostConfig(String nodeName, String nodeIp, int nodePort, String trackerNodeName, String trackerNodeIP,
                       int trackerNodePort, List<String> availableFiles, List<String> download) {
         NodeName = nodeName;
-        NodeIp = nodeIp;
+        NodeIP = nodeIp;
         NodePort = nodePort;
         TrackerNodeName = trackerNodeName;
-        TrackerNodeIp = trackerNodeIp;
+        TrackerNodeIp = trackerNodeIP;
         TrackerNodePort = trackerNodePort;
         AvailableFiles = availableFiles;
         Download = download;
@@ -61,7 +61,7 @@ public class PeerConfig {
      * @return NodeIp
      */
     public String getNodeIp() {
-        return NodeIp;
+        return NodeIP;
     }
 
     /**
@@ -69,7 +69,7 @@ public class PeerConfig {
      * @param nodeIp
      */
     public void setNodeIp(String nodeIp) {
-        NodeIp = nodeIp;
+        NodeIP = nodeIp;
     }
 
     /**

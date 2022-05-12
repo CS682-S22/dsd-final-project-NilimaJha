@@ -22,11 +22,14 @@ public class Driver {
      * @param args input args
      */
     public static void main(String[] args) {
+        logger.info("Here1...");
+        System.out.println("Here11...");
         //validate args
         if (!Utility.argsIsValid(args)) {
             logger.info("\nArgument provided is invalid.");
             System.exit(0);
         }
+        logger.info("Here2...");
         //parseArgs
         String hostType = Utility.getTypeFromArgs(args);
         String hostName = Utility.getNameFromArgs(args);
@@ -84,12 +87,14 @@ public class Driver {
         Thread thread = new Thread(host);
         thread.start();
 
-        for (String downloadFileName : hostConfig.getDownload()) {
-            Runnable runnable = () -> {
-                host.download(downloadFileName);
-            };
-            Thread fileDownloadThread = new Thread(runnable);
-            fileDownloadThread.start();
+        if (hostConfig.getDownload() != null) {
+            for (String downloadFileName : hostConfig.getDownload()) {
+                Runnable runnable = () -> {
+                    host.download(downloadFileName);
+                };
+                Thread fileDownloadThread = new Thread(runnable);
+                fileDownloadThread.start();
+            }
         }
     }
 }

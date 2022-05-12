@@ -13,16 +13,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author nilimajha
  */
 public class Metadata {
-    private ConcurrentHashMap<String, NodeInfo> peerNameToItsInfoMap;
-    private ConcurrentHashMap<String, FileSwarmInfo> fileToSwarmMap;
+    private ConcurrentHashMap<String, NodeInfo> availableHostsNameToDetailMap;
+    private ConcurrentHashMap<String, FileSwarmDetails> fileNameToFileSwarmDetailsMap;
     private static Metadata metadata = null;
 
     /**
      * Constructor
      */
     private Metadata() {
-        this.peerNameToItsInfoMap = new ConcurrentHashMap<>();
-        this.fileToSwarmMap = new ConcurrentHashMap<>();
+        this.availableHostsNameToDetailMap = new ConcurrentHashMap<>();
+        this.fileNameToFileSwarmDetailsMap = new ConcurrentHashMap<>();
     }
 
     /**
@@ -38,13 +38,13 @@ public class Metadata {
     }
 
     /**
-     * add new peer node infor to the list of the peers.
+     * add new peer node info to the list of the peers.
      * @param peerName
      * @return
      */
     public boolean addNewPeer(String peerName, String peerIp, int peerPort) {
         NodeInfo peerInfo = new NodeInfo(peerName, peerIp, peerPort);
-        peerNameToItsInfoMap.putIfAbsent(peerName, peerInfo);
+        availableHostsNameToDetailMap.putIfAbsent(peerName, peerInfo);
         return true;
     }
 
@@ -54,8 +54,8 @@ public class Metadata {
      * @return
      */
     public boolean addFile(String fileName, long fileSize, byte[] checksum, long totalPackets) {
-        FileSwarmInfo fileSwarm = new FileSwarmInfo(fileName, fileSize, checksum, totalPackets);
-        fileToSwarmMap.putIfAbsent(fileName, fileSwarm);
+        FileSwarmDetails fileSwarm = new FileSwarmDetails(fileName, fileSize, checksum, totalPackets);
+        fileNameToFileSwarmDetailsMap.putIfAbsent(fileName, fileSwarm);
         return true;
     }
 
@@ -65,7 +65,7 @@ public class Metadata {
      * @return
      */
     public boolean addMemberToTheSwarm(String fileName, String peerName, boolean entireFileAvailable) {
-        fileToSwarmMap.get(fileName).addMemberInSwarm(peerName, entireFileAvailable);
+        fileNameToFileSwarmDetailsMap.get(fileName).addMemberInSwarm(peerName, entireFileAvailable);
         return true;
     }
 
@@ -75,8 +75,8 @@ public class Metadata {
      * @return
      */
     public boolean updateMemberAvailablePacketInfo(String fileName, String peerName, long packetNumber) {
-        if (fileToSwarmMap.containsKey(fileName)) {
-            fileToSwarmMap.get(fileName).updateSwarmMemberPacketAvailableInfo(peerName, packetNumber);
+        if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
+            fileNameToFileSwarmDetailsMap.get(fileName).updateSwarmMemberPacketAvailableInfo(peerName, packetNumber);
         }
         return true;
     }
@@ -88,14 +88,14 @@ public class Metadata {
      */
     public List<ByteString> getAllPeerInfoOfASwarm(String fileName) {
         List<ByteString> swarmMemberInfoList = new ArrayList<>();
-        if (fileToSwarmMap.containsKey(fileName)) {
-            List<String> swarmMemberNameList = fileToSwarmMap.get(fileName).getAllPeerNameList();
+        if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
+            List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName).getAllPeerNameList();
             for (String eachMemberName : swarmMemberNameList) {
-                if (peerNameToItsInfoMap.containsKey(eachMemberName)) {
+                if (availableHostsNameToDetailMap.containsKey(eachMemberName)) {
                     Any swarmMemberInfo = Any.pack(SwarmMemberInfo.SwarmMemberInfoDetails.newBuilder()
-                            .setPeerName(peerNameToItsInfoMap.get(eachMemberName).getName())
-                            .setPeerIp(peerNameToItsInfoMap.get(eachMemberName).getIp())
-                            .setPeerPort(peerNameToItsInfoMap.get(eachMemberName).getPort())
+                            .setPeerName(availableHostsNameToDetailMap.get(eachMemberName).getName())
+                            .setPeerIp(availableHostsNameToDetailMap.get(eachMemberName).getIp())
+                            .setPeerPort(availableHostsNameToDetailMap.get(eachMemberName).getPort())
                             .build());
                     swarmMemberInfoList.add(ByteString.copyFrom(swarmMemberInfo.toByteArray()));
                 }
@@ -111,14 +111,14 @@ public class Metadata {
      */
     public List<ByteString> getPeerInfoOfASwarmForPacket(String fileName, long packetNumber) {
         List<ByteString> swarmMemberInfoList = new ArrayList<>();
-        if (fileToSwarmMap.containsKey(fileName)) {
-            List<String> swarmMemberNameList = fileToSwarmMap.get(fileName).getPeerNameListWithGivenPacket(packetNumber);
+        if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
+            List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName).getPeerNameListWithGivenPacket(packetNumber);
             for (String eachMemberName : swarmMemberNameList) {
-                if (peerNameToItsInfoMap.containsKey(eachMemberName)) {
+                if (availableHostsNameToDetailMap.containsKey(eachMemberName)) {
                     Any swarmMemberInfo = Any.pack(SwarmMemberInfo.SwarmMemberInfoDetails.newBuilder()
-                            .setPeerName(peerNameToItsInfoMap.get(eachMemberName).getName())
-                            .setPeerIp(peerNameToItsInfoMap.get(eachMemberName).getIp())
-                            .setPeerPort(peerNameToItsInfoMap.get(eachMemberName).getPort())
+                            .setPeerName(availableHostsNameToDetailMap.get(eachMemberName).getName())
+                            .setPeerIp(availableHostsNameToDetailMap.get(eachMemberName).getIp())
+                            .setPeerPort(availableHostsNameToDetailMap.get(eachMemberName).getPort())
                             .build());
                     swarmMemberInfoList.add(ByteString.copyFrom(swarmMemberInfo.toByteArray()));
                 }
@@ -134,8 +134,8 @@ public class Metadata {
      */
     public long getFileSize(String fileName) {
         long fileSize = 0;
-        if (fileToSwarmMap.containsKey(fileName)) {
-            fileSize = fileToSwarmMap.get(fileName).getFileSize();
+        if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
+            fileSize = fileNameToFileSwarmDetailsMap.get(fileName).getFileSize();
         }
         return fileSize;
     }
@@ -147,8 +147,8 @@ public class Metadata {
      */
     public byte[] getChecksum(String fileName) {
        byte[] checksum = null;
-       if (fileToSwarmMap.containsKey(fileName)) {
-           checksum = fileToSwarmMap.get(fileName).getChecksum();
+       if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
+           checksum = fileNameToFileSwarmDetailsMap.get(fileName).getChecksum();
        }
        return checksum;
     }
@@ -160,8 +160,8 @@ public class Metadata {
      */
     public long getTotalNumberOfPackets(String fileName) {
         long totalNumberOfPacket = 0;
-        if (fileToSwarmMap.containsKey(fileName)) {
-            totalNumberOfPacket = fileToSwarmMap.get(fileName).getTotalPackets();
+        if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
+            totalNumberOfPacket = fileNameToFileSwarmDetailsMap.get(fileName).getTotalPackets();
         }
         return totalNumberOfPacket;
     }
