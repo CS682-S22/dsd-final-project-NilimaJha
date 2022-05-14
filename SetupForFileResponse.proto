@@ -8,4 +8,5 @@ option java_outer_classname = "SetupForFileResponse";
 message SetupForFileResponseDetails {
   string senderName = 1;
   string fileName = 2;
+  bool added = 3;
 }

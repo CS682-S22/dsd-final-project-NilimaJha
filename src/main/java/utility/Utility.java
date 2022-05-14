@@ -2,8 +2,8 @@ package utility;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import connection.Connection;
 import customeException.ConnectionClosedException;
-import model.Connection;
 import model.HostConfig;
 import model.TrackerConfig;
 import org.apache.logging.log4j.LogManager;
@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * util.Utility class to store the helper functions.
  * @author nilimajha
@@ -34,8 +36,8 @@ public class Utility {
      */
     public static boolean argsIsValid (String[] args) {
         boolean isValid = false;
-        if (args.length == 6 && args[0].equals("-type") && args[2].equals("-name")
-                && args[4].equals("-configFile") && typeIsValid(args[1]) && fileNameIsValid(args[5])) {
+        if (args.length == 8 && args[0].equals("-type") && args[2].equals("-name") && args[4].equals("-delay")
+                && args[6].equals("-configFile") && typeIsValid(args[1]) && fileNameIsValid(args[7])) {
             isValid = true;
         }
         return isValid;
@@ -101,7 +103,31 @@ public class Utility {
      * @return filename
      */
     public static String getConfigFilename (String[] args) {
-        return args[5];
+        return args[7];
+    }
+
+    /**
+     *
+     * @param args
+     * @return
+     */
+    public static boolean getDelayStatusFromArgs(String[] args) {
+        boolean delayStatus = false;
+        if (parseInt(args[5]) > 0) {
+            delayStatus =  true;
+        }
+        return delayStatus;
+    }
+
+    /**
+     *
+     * @param args
+     * @return
+     */
+    public static int getMaxDelayFromArgs(String[] args) {
+        int maxDelay = 0;
+        maxDelay = parseInt(args[5]);
+        return maxDelay;
     }
 
     /**
@@ -201,7 +227,7 @@ public class Utility {
      * @param nodePort
      * @return Connection or null
      */
-    public static Connection establishConnection(String nodeIP, int nodePort) throws ConnectionClosedException {
+    public static Connection establishConnection(String nodeIP, int nodePort, boolean delay, int maxDelay) throws ConnectionClosedException {
         logger.info("\nNow will connect.....");
         AsynchronousSocketChannel clientSocket = null;
         Connection connection = null;
@@ -213,7 +239,7 @@ public class Utility {
             Future<Void> futureSocket = clientSocket.connect(brokerAddress);
             futureSocket.get();
             logger.info("\n[Connected to node.]");
-            connection = new Connection(clientSocket); //connection established with this member.
+            connection = new Connection(clientSocket, delay, maxDelay); //connection established with this member.
         } catch (IOException | ExecutionException | InterruptedException e) {
             logger.error(e.getMessage());
             throw new ConnectionClosedException("No Host running on the given IP & port!!!");

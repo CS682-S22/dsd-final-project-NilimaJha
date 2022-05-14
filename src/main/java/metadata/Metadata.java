@@ -1,7 +1,10 @@
-package model;
+package metadata;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
+import model.NodeInfo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import proto.SwarmMemberInfo;
 
 import java.util.ArrayList;
@@ -13,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author nilimajha
  */
 public class Metadata {
+    private static final Logger logger = LogManager.getLogger(Metadata.class);
     private ConcurrentHashMap<String, NodeInfo> availableHostsNameToDetailMap;
     private ConcurrentHashMap<String, FileSwarmDetails> fileNameToFileSwarmDetailsMap;
     private static Metadata metadata = null;
@@ -38,11 +42,11 @@ public class Metadata {
     }
 
     /**
-     * add new peer node info to the list of the peers.
+     * add new host node info to the list of the hosts.
      * @param peerName
      * @return
      */
-    public boolean addNewPeer(String peerName, String peerIp, int peerPort) {
+    public boolean addNewHost(String peerName, String peerIp, int peerPort) {
         NodeInfo peerInfo = new NodeInfo(peerName, peerIp, peerPort);
         availableHostsNameToDetailMap.putIfAbsent(peerName, peerInfo);
         return true;
@@ -55,7 +59,11 @@ public class Metadata {
      */
     public boolean addFile(String fileName, long fileSize, byte[] checksum, long totalPackets) {
         FileSwarmDetails fileSwarm = new FileSwarmDetails(fileName, fileSize, checksum, totalPackets);
-        fileNameToFileSwarmDetailsMap.putIfAbsent(fileName, fileSwarm);
+        FileSwarmDetails fileSwarmDetails = fileNameToFileSwarmDetailsMap.putIfAbsent(fileName, fileSwarm);
+        if (fileSwarmDetails == null) {
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] New File "
+                    + fileName + " is added to the list of files.");
+        }
         return true;
     }
 
@@ -65,8 +73,15 @@ public class Metadata {
      * @return
      */
     public boolean addMemberToTheSwarm(String fileName, String peerName, boolean entireFileAvailable) {
-        fileNameToFileSwarmDetailsMap.get(fileName).addMemberInSwarm(peerName, entireFileAvailable);
-        return true;
+        boolean added = false;
+        synchronized (this) {
+            if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
+                added = fileNameToFileSwarmDetailsMap.get(fileName).addMemberInSwarm(peerName, entireFileAvailable);
+            }
+        }
+        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] added status :" + added +
+                " file name " + fileName + " is not available in the map.");
+        return added;
     }
 
     /**
@@ -88,9 +103,15 @@ public class Metadata {
      */
     public List<ByteString> getAllPeerInfoOfASwarm(String fileName) {
         List<ByteString> swarmMemberInfoList = new ArrayList<>();
+
         if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
             List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName).getAllPeerNameList();
+
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "]1111 List Of Host for file "
+                    + fileName + " is " + swarmMemberNameList);
+
             for (String eachMemberName : swarmMemberNameList) {
+                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] file " + eachMemberName);
                 if (availableHostsNameToDetailMap.containsKey(eachMemberName)) {
                     Any swarmMemberInfo = Any.pack(SwarmMemberInfo.SwarmMemberInfoDetails.newBuilder()
                             .setPeerName(availableHostsNameToDetailMap.get(eachMemberName).getName())
@@ -113,6 +134,10 @@ public class Metadata {
         List<ByteString> swarmMemberInfoList = new ArrayList<>();
         if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
             List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName).getPeerNameListWithGivenPacket(packetNumber);
+
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] List Of Host for packet "
+                    + packetNumber + " of file " + fileName + " is " + swarmMemberNameList);
+
             for (String eachMemberName : swarmMemberNameList) {
                 if (availableHostsNameToDetailMap.containsKey(eachMemberName)) {
                     Any swarmMemberInfo = Any.pack(SwarmMemberInfo.SwarmMemberInfoDetails.newBuilder()
@@ -141,7 +166,7 @@ public class Metadata {
     }
 
     /**
-     *
+     * getter for the checksum of the file with the given file name.
      * @param fileName
      * @return
      */
@@ -154,7 +179,7 @@ public class Metadata {
     }
 
     /**
-     *
+     * getter for the attribute totalNumberOfPacket of the file with given file name.
      * @param fileName
      * @return
      */

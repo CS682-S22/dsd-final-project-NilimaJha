@@ -1,7 +1,7 @@
-package model;
+package swarm;
 
 /**
- *
+ * Class to store each packet information.
  * @author nilimajha
  */
 public class PacketInformation {

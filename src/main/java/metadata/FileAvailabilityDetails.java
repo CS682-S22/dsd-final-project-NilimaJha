@@ -1,4 +1,7 @@
-package model;
+package metadata;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -8,6 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author nilimajha
  */
 public class FileAvailabilityDetails {
+    private static final Logger logger = LogManager.getLogger(FileAvailabilityDetails.class);
     private String peerName;
     private String fileName;
     private long totalPacket;
@@ -36,6 +40,8 @@ public class FileAvailabilityDetails {
     public boolean updatePacketInfo(long packetNum) {
         lock.writeLock().lock();
         if (!getAvailablePacketList().contains(packetNum)) {
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Adding packet " + packetNum +
+                    " in the " + peerName + "'s haveList for file " + fileName);
             getAvailablePacketList().add(packetNum);
         }
         if (getAvailablePacketList().size() == getTotalPacket()) {
@@ -46,24 +52,24 @@ public class FileAvailabilityDetails {
     }
 
     /**
-     *
-     * @return
+     * getter for the attribute fileName
+     * @return fileName
      */
     public String getFileName() {
         return fileName;
     }
 
     /**
-     *
-     * @return
+     * getter for the attribute totalPacket
+     * @return totalPacket
      */
     public long getTotalPacket() {
         return totalPacket;
     }
 
     /**
-     *
-     * @return
+     * getter for the attribute availablePacketList
+     * @return availablePacketList
      */
     public ArrayList<Long> getAvailablePacketList() {
         return availablePacketList;
@@ -81,15 +87,15 @@ public class FileAvailabilityDetails {
     }
 
     /**
-     *
-     * @return
+     * getter for the attribute entireFileAvailable
+     * @return entireFileAvailable
      */
     public boolean isEntireFileAvailable() {
         return entireFileAvailable;
     }
 
     /**
-     *
+     * setter for the attribute fileName
      * @param fileName
      */
     public void setFileName(String fileName) {
@@ -97,7 +103,7 @@ public class FileAvailabilityDetails {
     }
 
     /**
-     *
+     * setter for the attribute setTotalPaket
      * @param totalPacket
      */
     public void setTotalPacket(int totalPacket) {
@@ -105,7 +111,7 @@ public class FileAvailabilityDetails {
     }
 
     /**
-     *
+     * setter for the attribute entireFileAvailable.
      * @param entireFileAvailable
      */
     public void setEntireFileAvailable(boolean entireFileAvailable) {

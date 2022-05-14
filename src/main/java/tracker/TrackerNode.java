@@ -1,6 +1,6 @@
 package tracker;
 
-import model.Connection;
+import connection.Connection;
 import model.NodeInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +22,8 @@ import java.util.concurrent.Future;
 public class TrackerNode implements Runnable {
     private static final Logger logger = LogManager.getLogger(TrackerNode.class);
     private NodeInfo thisNodeInfo;
+    private boolean delay;
+    private int maxDelay;
     private boolean shutdown = false;
     private ExecutorService threadPool = Executors.newFixedThreadPool(Constants.TRACKER_NODE_THREAD_POOL_SIZE);
 
@@ -31,13 +33,15 @@ public class TrackerNode implements Runnable {
      * @param trackerIp
      * @param trackerPort
      */
-    public TrackerNode(String trackerName, String trackerIp, int trackerPort) {
+    public TrackerNode(String trackerName, String trackerIp, int trackerPort, boolean delay, int maxDelay) {
         this.thisNodeInfo = new NodeInfo(trackerName, trackerIp, trackerPort);
+        this.delay = delay;
+        this.maxDelay = maxDelay;
     }
 
     /**
      * opens a serverSocket and keeps listening for
-     * new connection request from producer or consumer or Broker.
+     * new connection request from host nodes.
      */
     public void startTrackerNode() {
         AsynchronousServerSocketChannel serverSocket = null;
@@ -47,7 +51,7 @@ public class TrackerNode implements Runnable {
             // keeps on running when shutdown is false
             while (!shutdown) {
                 logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] [INFO] " + thisNodeInfo.getName() +
-                        " Server is listening on IP : " + thisNodeInfo.getIp() + " & Port : " + thisNodeInfo.getPort());
+                        " Tracker Server is listening on IP : " + thisNodeInfo.getIp() + " & Port : " + thisNodeInfo.getPort());
                 Future<AsynchronousSocketChannel> acceptFuture = serverSocket.accept();
                 AsynchronousSocketChannel socketChannel = null;
                 try {
@@ -63,10 +67,9 @@ public class TrackerNode implements Runnable {
                 //checking if the socketChannel is valid.
                 if ((socketChannel != null) && (socketChannel.isOpen())) {
                     Connection connection = null;
-                    connection = new Connection(socketChannel);
+                    connection = new Connection(socketChannel, delay, maxDelay);
                     // give this connection to handler
-                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] New connection established.");
-                    TrackerConnectionHandler handler = new TrackerConnectionHandler(connection, thisNodeInfo);
+                    TrackerRequestProcessor handler = new TrackerRequestProcessor(connection, thisNodeInfo);
                     threadPool.execute(handler);
                 }
             }
@@ -76,6 +79,9 @@ public class TrackerNode implements Runnable {
         }
     }
 
+    /**
+     * method starts the trackerNode mechanism.
+     */
     @Override
     public void run() {
         startTrackerNode();

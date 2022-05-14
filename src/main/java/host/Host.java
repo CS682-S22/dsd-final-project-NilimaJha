@@ -1,13 +1,18 @@
-package peer;
+package host;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import connection.Connection;
 import customeException.ConnectionClosedException;
 import model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import proto.*;
+import swarm.AllSwarms;
+import swarm.File;
+import swarm.Swarm;
+import swarm.SwarmMemberDetails;
 import utility.Constants;
 import utility.Utility;
 
@@ -26,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
+ * Host class that contains logic related to the operation on a host.
  *
  * @author nilimajha
  */
@@ -34,12 +40,15 @@ public class Host implements Runnable {
     private NodeInfo thisNodeInfo;
     private NodeInfo trackerNodeInfo;
     private List<String> availableFileNames;
+    private boolean delay;
+    private int maxDelay;
     private boolean shutdown;
     private AllSwarms allSwarms;
     private volatile boolean registered;
     private ExecutorService threadPool = Executors.newFixedThreadPool(Constants.PEER_THREAD_POOL_SIZE); //thread pool of size 15
 
     /**
+     * Constructor
      *
      * @param thisNodeName
      * @param thisNodeIp
@@ -50,14 +59,12 @@ public class Host implements Runnable {
      * @param availableFileNames
      */
     public Host(String thisNodeName, String thisNodeIp, int thisNodePort, String trackerNodeName,
-                String trackerNodeIp, int trackerNodePort, List<String> availableFileNames) {
+                String trackerNodeIp, int trackerNodePort, List<String> availableFileNames, boolean delay, int maxDelay) {
         this.thisNodeInfo = new NodeInfo(thisNodeName, thisNodeIp, thisNodePort);
         this.trackerNodeInfo = new NodeInfo(trackerNodeName, trackerNodeIp, trackerNodePort);
-        logger.info("\nNode : " + thisNodeName + ", " + thisNodeIp + ", " + thisNodePort);
-        logger.info("\nNode2 : " + thisNodeInfo.getName() + ", " + thisNodeInfo.getIp() + ", " + thisNodeInfo.getPort());
-        logger.info("\nTrackerNode : " + trackerNodeName + ", " + trackerNodeIp + ", " + trackerNodePort);
-        logger.info("\nTrackerNode2 : " + trackerNodeInfo.getName() + ", " + trackerNodeInfo.getIp() + ", " + trackerNodeInfo.getPort());
         this.availableFileNames = availableFileNames;
+        this.delay = delay;
+        this.maxDelay = maxDelay;
         this.allSwarms = AllSwarms.getAllSwarm(thisNodeInfo);
     }
 
@@ -65,7 +72,7 @@ public class Host implements Runnable {
      * run opens a serverSocket and keeps listening for
      * new connection request from producer or consumer.
      * once it receives a connection request it creates a
-     * connection object and hands it to the broker.RequestProcessor class object.
+     * connection object and hands it to the RequestProcessor class object.
      */
     @Override
     public void run() {
@@ -76,8 +83,8 @@ public class Host implements Runnable {
             serverSocket.bind(new InetSocketAddress(thisNodeInfo.getIp(), thisNodeInfo.getPort()));
             // keeps on running when shutdown is false
             while (!shutdown) {
-                logger.info("\n[Peer : " + thisNodeInfo.getName() + " Host is listening on IP : "
-                        + thisNodeInfo.getIp() + " & Port : " + thisNodeInfo.getPort());
+                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] [INFO] " + thisNodeInfo.getName() +
+                        " Server is listening on IP : " + thisNodeInfo.getIp() + " & Port : " + thisNodeInfo.getPort());
                 Future<AsynchronousSocketChannel> acceptFuture = serverSocket.accept();
                 AsynchronousSocketChannel socketChannel = null;
 
@@ -94,10 +101,9 @@ public class Host implements Runnable {
                 //checking if the socketChannel is valid.
                 if ((socketChannel != null) && (socketChannel.isOpen())) {
                     Connection newConnection = null;
-                    newConnection = new Connection(socketChannel);
+                    newConnection = new Connection(socketChannel, delay, maxDelay);
                     // give this connection to requestProcessor
-                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Received new Connection.");
-                    RequestProcessor requestProcessor = new RequestProcessor(thisNodeInfo, newConnection);
+                    HostRequestProcessor requestProcessor = new HostRequestProcessor(thisNodeInfo, newConnection);
                     threadPool.execute(requestProcessor);
                 }
             }
@@ -108,33 +114,55 @@ public class Host implements Runnable {
     }
 
     /**
-     * connects to loadBalancer and gets the leader and member's info.
-     * connects to all the member and updates its membership table.
-     * it there is no member in the membership table then it registers itself as the leader.
+     * calls createSwarmForEachAvailableFile method to create swarm for all the available files.
+     * calls connectAndRegisterToTrackerNode method to register itself at trackerNode.
      */
     public void initialSetup() {
-        // for all the files available create a swarm.
+        // for all the files available creating a swarm.
         createSwarmForEachAvailableFile();
-        // connect to trackerNode and do initial registration.
+        // connecting to trackerNode and doing initial registration.
         connectAndRegisterToTrackerNode();
-        // set trackerConnection in ConnectionWithTracker class.
-//        connectionWithTracker.setTrackerConnection(trackerConnection);
-        // application layer will start download of file to be downloaded.
     }
 
     /**
-     *
-     * @return
+     * method creates swarm for each available files.
+     */
+    public void createSwarmForEachAvailableFile() {
+        // Creating Swarm for each available file.
+        if (availableFileNames != null) {
+            for (String eachFile : availableFileNames) {
+                try {
+                    Path path = Paths.get(eachFile);
+                    long fileSize = Files.size(path);
+                    File file = new File(eachFile, fileSize, Utility.createChecksum(eachFile),
+                            Utility.getTotalPacketOfFile(fileSize), true);
+                    allSwarms.addNewFileSwarm(eachFile, file);
+                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                            "] Successfully Created Swarm for file " + eachFile);
+                } catch (IOException e) {
+                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                            "] Error Message : " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * method that sets up a connection with tracker node and sends its information to it to register itself.
+     * once registered the connection with tracker is closed.
+     * @return registered
      */
     public boolean connectAndRegisterToTrackerNode() {
-        logger.info("\nInside connectAndRegisterToTrackerNode()");
         Connection trackerConnection = null;
         while(trackerConnection == null) {
             try {
-                logger.info("\nTrackerConnection is null...");
-                trackerConnection = Utility.establishConnection(trackerNodeInfo.getIp(), trackerNodeInfo.getPort());
+                trackerConnection = Utility.establishConnection(
+                        trackerNodeInfo.getIp(),
+                        trackerNodeInfo.getPort(),
+                        delay,
+                        maxDelay);
             } catch (ConnectionClosedException e) {
-                e.printStackTrace();
+                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] " + e.getMessage());
             }
         }
         if (trackerConnection.isConnected()) {
@@ -151,7 +179,6 @@ public class Host implements Runnable {
                     listOfEachFileInfo.add(eachFileInfo.toByteString());
                 }
             }
-            logger.info("\nPreparing RegisterMessage for the tracker.");
             Any registerMessage = Any.pack(RegisterMessage.RegisterMessageDetails.newBuilder()
                     .setSenderName(thisNodeInfo.getName())
                     .setSenderIp(thisNodeInfo.getIp())
@@ -159,7 +186,6 @@ public class Host implements Runnable {
                     .setNumberOfFilesAvailable(listOfEachFileInfo.size())
                     .addAllFileInfo(listOfEachFileInfo)
                     .build());
-
             try {
                 boolean registrationSuccessful = false;
                 while (!registrationSuccessful) {
@@ -171,54 +197,35 @@ public class Host implements Runnable {
                     try {
                         Any registerResponse = Any.parseFrom(response);
                         if (registerResponse.is(RegisterResponse.RegisterResponseDetails.class)) {
-                            logger.info("\nReceived ResponseMessage for the RegisterMessage from the tracker.");
+                            // registration successful
                             registrationSuccessful = true;
                             registered = true;
                         }
                     } catch (InvalidProtocolBufferException e) {
-                        logger.error("\nInvalidProtocolBufferException occurred. Error Message : " + e.getMessage());
+                        logger.error("\n[ThreadId : " +Thread.currentThread().getId() +
+                                "] InvalidProtocolBufferException occurred. Error Message : " + e.getMessage());
                     }
                 }
             } catch (ConnectionClosedException e) {
                 connectAndRegisterToTrackerNode();
             }
         }
-        logger.info("\nClosing the Connection with Tracker...");
+        logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] Closing the Connection with Tracker...");
         trackerConnection.closeConnection();
         return registered;
     }
 
     /**
-     *
-     */
-    public void createSwarmForEachAvailableFile() {
-        logger.info("\nCreating Swarm for each available file.");
-        if (availableFileNames != null) {
-            for (String eachFile : availableFileNames) {
-                try {
-                    Path path = Paths.get(eachFile);
-                    long fileSize = Files.size(path);
-                    File file = new File(eachFile, fileSize, Utility.createChecksum(eachFile),
-                            Utility.getTotalPacketOfFile(fileSize), true);
-                    allSwarms.addNewFileSwarm(eachFile, file);
-                    logger.info("\nSuccessfully Created Swarm for file " + eachFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    /**
-     *
-     * @param fileName
+     * method creates an instance of the FileDownloader class to start downloading the file with given file name.
+     * @param fileName name of the file to be downloaded.
      */
     public void download(String fileName) {
-        logger.info("\n Starting to download file  :" + fileName);
+        logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] Starting to download file  :" + fileName);
         FileDownloader fileDownloader = new FileDownloader(fileName, trackerNodeInfo);
     }
 
     /**
+     * class that starts downloading the file with the given name.
      *
      * @author nilimajha
      */
@@ -241,7 +248,8 @@ public class Host implements Runnable {
         }
 
         /**
-         *
+         * method that creates connection with the tracker node and
+         * stores this tracker connection for the entire duration when this file is being downloaded.
          * @return
          */
         public boolean connectToTracker() {
@@ -257,15 +265,19 @@ public class Host implements Runnable {
             }
             while (this.connectionWithTracker == null || !this.connectionWithTracker.isConnectedWithTracker()) {
                 try {
-                    Connection connection = Utility.establishConnection(trackerNodeInfo.getIp(), trackerNodeInfo.getPort());
+                    Connection connection = Utility.establishConnection(
+                            trackerNodeInfo.getIp(),
+                            trackerNodeInfo.getPort(),
+                            delay,
+                            maxDelay);
                     if (connection != null) {
                         this.connectionWithTracker = new ConnectionWithTracker(trackerNodeInfo, connection);
                     }
                 } catch (ConnectionClosedException e) {
-                    e.printStackTrace();
+                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] " + e.getMessage());
                 }
             }
-            if (this.connectionWithTracker != null || this.connectionWithTracker.isConnectedWithTracker()) {
+            if (connectionWithTracker != null && this.connectionWithTracker.isConnectedWithTracker()) {
                 boolean setUpDone = false;
                 Any any = Any.pack(SetupForFileMessage.SetupForFileMessageDetails.newBuilder()
                         .setSenderName(thisNodeInfo.getName())
@@ -274,7 +286,7 @@ public class Host implements Runnable {
                         .setFileToBeDownloaded(fileName)
                         .build());
                 while (!setUpDone) {
-                    if (connectionWithTracker != null || connectionWithTracker.isConnectedWithTracker()) {
+                    if (connectionWithTracker != null && connectionWithTracker.isConnectedWithTracker()) {
                         byte[] response = connectionWithTracker.makeRequestToTracker(any.toByteArray());
                         try {
                             Any responseAny = Any.parseFrom(response);
@@ -282,7 +294,8 @@ public class Host implements Runnable {
                                 setUpDone = true;
                             }
                         } catch (InvalidProtocolBufferException e) {
-                            e.printStackTrace();
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                    "] InvalidProtocolBufferException occurred. Error Message : " + e.getMessage());
                         }
                     } else {
                         connectToTracker();
@@ -293,10 +306,16 @@ public class Host implements Runnable {
         }
 
         /**
+         * method first gets the file to be downloaded information with
+         * the information of the peer from where this file can be downloaded from tracker node.
          *
+         * sets up connection with each of the peer from the list of peer provided by tracker node.
+         *
+         * starts n number of threads to download file packets randomly from peer.
          */
         public void startThreadToDownload() {
             if (connectionWithTracker != null && connectionWithTracker.isConnectedWithTracker()) {
+                // request file to be downloaded information from tracker node.
                 Any requestFileInfoMessage = Any.pack(RequestFileInfo.RequestFileInfoDetails.newBuilder()
                         .setSenderName(thisNodeInfo.getName())
                         .setFileName(fileName)
@@ -308,10 +327,6 @@ public class Host implements Runnable {
                     if (fileInfoResponseMessageAny.is(FileMetadata.FileMetadataDetails.class)) {
                         FileMetadata.FileMetadataDetails fileInfo = fileInfoResponseMessageAny.unpack(FileMetadata.FileMetadataDetails.class);
                         if (fileInfo.getFileInfoAvailable()) {
-                            logger.info("\nFileName : " + fileInfo.getFileName() +
-                                    " \nFileSize : " + fileInfo.getFileSize() +
-                                    "\nCheckSum : " + fileInfo.getChecksum() +
-                                    "\nTotalNumberOfPacket : " + fileInfo.getTotalNumberOfPackets());
                             File file = new File(fileInfo.getFileName(),
                                     fileInfo.getFileSize(),
                                     fileInfo.getChecksum().toByteArray(),
@@ -319,8 +334,7 @@ public class Host implements Runnable {
                                     false);
                             // creating swarm for this file.
                             allSwarms.addNewFileSwarm(fileInfo.getFileName(), file);
-                            logger.info("\nInitialised file " + fileName + ". Total member in the swarm " + fileInfo.getSwarmMemberInfoList().size());
-//                            List<NodeInfo> memberInSwarmInfo;
+                            // creating connection with all the member available in this file swarm.
                             for (ByteString memberInfoByteString : fileInfo.getSwarmMemberInfoList()) {
                                 Any memberInfoAny = Any.parseFrom(memberInfoByteString);
                                 if (memberInfoAny.is(SwarmMemberInfo.SwarmMemberInfoDetails.class)) {
@@ -328,13 +342,11 @@ public class Host implements Runnable {
                                             memberInfoAny.unpack(SwarmMemberInfo.SwarmMemberInfoDetails.class);
                                     if (!swarmMemberInfoDetails.getPeerName().equals(thisNodeInfo.getName())) {
                                         try {
-                                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] For file " + fileName + " connecting to " + swarmMemberInfoDetails.getPeerName());
                                             Connection peerConnection =
                                                     Utility.establishConnection(swarmMemberInfoDetails.getPeerIp(),
-                                                            swarmMemberInfoDetails.getPeerPort());
+                                                            swarmMemberInfoDetails.getPeerPort(), delay, maxDelay);
                                             if (peerConnection != null) {
                                                 // do initial setup
-                                                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Sending InitialMessage.");
                                                 Any initialMessage = Any.pack(InitialMessage.InitialMessageDetails
                                                         .newBuilder()
                                                         .setPeerName(thisNodeInfo.getName())
@@ -345,16 +357,16 @@ public class Host implements Runnable {
                                                 peerConnection.send(initialMessage.toByteArray());
                                                 byte[] response = null;
                                                 while (response == null) {
-                                                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Waiting for initialMessage Ack.");
                                                     response = peerConnection.receive();
                                                 }
                                                 Any initialMessageResponse = Any.parseFrom(response);
                                                 if (initialMessageResponse.is(InitialSetupDoneAck.InitialSetupDoneAckDetail.class)) {
-                                                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Received InitialMessage response.");
                                                     InitialSetupDoneAck.InitialSetupDoneAckDetail initialSetupDoneAckDetail
                                                             = initialMessageResponse.unpack(InitialSetupDoneAck.InitialSetupDoneAckDetail.class);
+//                                                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+//                                                            "] For file " + fileName + " connected to "
+//                                                            + swarmMemberInfoDetails.getPeerName());
                                                 }
-                                                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Adding the member to the swarm. for file " + fileName);
                                                 // adding new member in the Swarm.
                                                 SwarmMemberDetails swarmMemberDetails = new SwarmMemberDetails(
                                                         swarmMemberInfoDetails.getPeerName(),
@@ -371,16 +383,18 @@ public class Host implements Runnable {
                             }
                             for (int i = 0; i < Constants.EACH_FILE_THREAD_POOL_SIZE; i++) {
                                 Thread thread = new Thread(this::startDownload);
+                                logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                        "] Starting download thread " + i + " for file " + fileName);
                                 thread.start();
-                                logger.info("\nStarting thread" + i);
                             }
                         } else {
                             // file is not available.
-                            logger.info("\nFile is not available.");
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] File is not available.");
                         }
                     }
                 } catch (InvalidProtocolBufferException e) {
-                    e.printStackTrace();
+                    logger.error("\n[ThreadId : " + Thread.currentThread().getId() +
+                            "] InvalidProtocolBufferException occurred. Error message : " + e.getMessage());
                 }
             } else {
                 connectToTracker();
@@ -389,10 +403,9 @@ public class Host implements Runnable {
         }
 
         /**
-         *
+         * method downloads file by downloading one packet at a time.
          */
         public void startDownload() {
-            logger.info("\nInside startDownload.");
             while (connectionWithTracker.isConnectedWithTracker() && allSwarms.isBeingDownloaded(fileName)) {
                 long nextPacketNumber = allSwarms.getNextPacketNumber(fileName);
                 Any requestPacketInfo = Any.pack(RequestFileInfo.RequestFileInfoDetails.newBuilder()
@@ -401,15 +414,15 @@ public class Host implements Runnable {
                         .setPacketNumber(nextPacketNumber)
                         .setDetailForPacket(true)
                         .build());
-
-                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Making Request to Tracker for packet " + nextPacketNumber + " of File " + fileName);
                 byte[] response = connectionWithTracker.makeRequestToTracker(requestPacketInfo.toByteArray());
                 try {
                     Any packetInfoResponse = Any.parseFrom(response);
                     if (packetInfoResponse.is(FileMetadata.FileMetadataDetails.class)) {
-                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Response received from Tracker for packet " + nextPacketNumber + " of File " + fileName);
+//                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+//                                "] Got information from Tracker for packet " + nextPacketNumber + " of File " + fileName);
                         FileMetadata.FileMetadataDetails packetDetails = packetInfoResponse.unpack(FileMetadata.FileMetadataDetails.class);
                         List<ByteString> swarmMembersInfoWithThisPacket = packetDetails.getSwarmMemberInfoList();
+                        // extracting the name of the peer in the swarm with the packet.
                         List<String> swarmMembersNameWithThisPacket = new ArrayList<>();
                         for (ByteString eachMemberInfo : swarmMembersInfoWithThisPacket) {
                             Any swarmMemberInfo = Any.parseFrom(eachMemberInfo);
@@ -422,31 +435,41 @@ public class Host implements Runnable {
                             }
                         }
 
-                        logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] List of Peer in the swarm for file " + fileName + ", packet " + nextPacketNumber + " -> " + swarmMembersNameWithThisPacket);
+//                        logger.info("\n[ThreadId : " +Thread.currentThread().getId() +
+//                        "] List of Peer in the swarm for file " + fileName + ", packet "
+//                        + nextPacketNumber + " -> " + swarmMembersNameWithThisPacket);
                         Any downloadRequest = Any.pack(DownloadRequest.DownloadRequestDetail.newBuilder()
                                 .setFileName(fileName)
                                 .setPacketNumber(nextPacketNumber)
                                 .build());
                         while (!allSwarms.packetOfFileIsAvailable(fileName, nextPacketNumber)) {
-                            logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] file " + fileName + " packet " + nextPacketNumber + " available at "
-                                    + swarmMembersNameWithThisPacket);
+                            logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] file "
+                            + fileName + " packet " + nextPacketNumber + " available at "
+                            + swarmMembersNameWithThisPacket);
+
+                            // downloading packet from peer.
                             for (String peerName : swarmMembersNameWithThisPacket) {
                                 Swarm swarm = allSwarms.getSwarm(fileName);
                                 if (swarm.isAPeer(peerName)) {
-                                    logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] Downloading...");
-                                    byte[] downloadResponse = swarm.getPeerNode(peerName).downloadPacket(downloadRequest.toByteArray());
+                                    byte[] downloadResponse = swarm.getPeerNode(peerName).makeRequestAndGetResponseFromPeer(downloadRequest.toByteArray());
                                     if (downloadResponse != null) {
-                                        logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] Downloaded something from " + peerName + " for file " + fileName);
                                         Any any = Any.parseFrom(downloadResponse);
                                         if (any.is(DownloadRequestResponse.DownloadRequestResponseDetail.class)) {
                                             DownloadRequestResponse.DownloadRequestResponseDetail actualData =
                                                     any.unpack(DownloadRequestResponse.DownloadRequestResponseDetail.class);
+                                            logger.info("\n[ThreadId : " +Thread.currentThread().getId() +
+                                                    "] Downloaded packet from " + peerName + " for file " + fileName +
+                                                    " actual data available " + actualData.getDataAvailable());
                                             //extract actual data, add it to temp file & update temp map
-                                            boolean markedDownloaded = allSwarms.addDownloadedPacket(fileName, nextPacketNumber, actualData.getPacketData().toByteArray());
+                                            boolean markedDownloaded = allSwarms.addDownloadedPacket(
+                                                    fileName,
+                                                    nextPacketNumber,
+                                                    actualData.getPacketData().toByteArray());
                                             // if markedDownloaded -> true -> update tracker node.
                                             if (markedDownloaded) {
-                                                // update tracker node.
-                                                Any updateMessage = Any.pack(UpdateFilePacketMetadataMetadata.UpdateFilePacketMetadataDetails.newBuilder()
+                                                // update packet available at tracker node.
+                                                Any updateMessage = Any.pack(UpdateFilePacketMetadataMetadata.UpdateFilePacketMetadataDetails
+                                                        .newBuilder()
                                                         .setFileName(fileName)
                                                         .setPacketNumber(nextPacketNumber)
                                                         .build());
@@ -460,6 +483,13 @@ public class Host implements Runnable {
                                                 }
                                                 break;
                                             }
+
+                                            if (!allSwarms.isBeingDownloaded(fileName)) {
+                                                logger.info("\nDownload successful");
+                                                allSwarms.closeAllConnection(fileName);
+                                                // close connection with tracker for this file.
+                                                connectionWithTracker.closeConnection();
+                                            }
                                         }
                                     }
                                 }
@@ -467,7 +497,8 @@ public class Host implements Runnable {
                         }
                     }
                 } catch (InvalidProtocolBufferException e) {
-                    e.printStackTrace();
+                    logger.error("\n[ThreadId : " + Thread.currentThread().getId() +
+                            "] InvalidProtocolBufferException occurred. Error message : " + e.getMessage());
                 }
             }
         }

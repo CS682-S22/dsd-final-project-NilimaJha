@@ -1,4 +1,7 @@
-package model;
+package metadata;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author nilimajha
  */
 public class FileSwarmDetails {
+    private static final Logger logger = LogManager.getLogger(FileSwarmDetails.class);
     private String fileName;
     private long fileSize;
     private byte[] checksum;
@@ -20,6 +24,9 @@ public class FileSwarmDetails {
     /**
      * Constructor
      * @param fileName
+     * @param fileSize
+     * @param checksum
+     * @param totalPackets
      */
     public FileSwarmDetails(String fileName, long fileSize, byte[] checksum, long totalPackets) {
         this.fileName = fileName;
@@ -35,8 +42,12 @@ public class FileSwarmDetails {
      * @return
      */
     public boolean addMemberInSwarm(String peerName, boolean entireFileAvailable) {
-        FileAvailabilityDetails peerInfo = new FileAvailabilityDetails(peerName, fileName, totalPackets, entireFileAvailable);
-        peerNameToFileAvailabilityDetailsMap.putIfAbsent(peerName, peerInfo);
+        FileAvailabilityDetails hostFileAvailabilityDetails = new FileAvailabilityDetails(peerName, fileName, totalPackets, entireFileAvailable);
+        FileAvailabilityDetails fileAvailabilityDetails = peerNameToFileAvailabilityDetailsMap.putIfAbsent(peerName, hostFileAvailabilityDetails);
+        if (fileAvailabilityDetails == null) {
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] New host " + peerName +
+                    " is added to the list of host for file " + fileName);
+        }
         return true;
     }
 
@@ -60,6 +71,7 @@ public class FileSwarmDetails {
         for (Map.Entry<String, FileAvailabilityDetails> eachPeer : peerNameToFileAvailabilityDetailsMap.entrySet()) {
             peerNameList.add(eachPeer.getKey());
         }
+        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] PeerNameList " + peerNameList);
         return peerNameList;
     }
 
@@ -75,6 +87,8 @@ public class FileSwarmDetails {
                 peerNameList.add(eachPeer.getKey());
             }
         }
+        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] PeerNameList for packet "
+                + packetNumber + " of file " + fileName + " is " + peerNameList);
         return peerNameList;
     }
 

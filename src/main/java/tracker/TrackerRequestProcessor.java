@@ -3,9 +3,9 @@ package tracker;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import connection.Connection;
 import customeException.ConnectionClosedException;
-import model.Connection;
-import model.Metadata;
+import metadata.Metadata;
 import model.NodeInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,11 +14,11 @@ import proto.*;
 import java.util.List;
 
 /**
- *
+ * Class that handles each connection established with the tracker server.
  * @author nilimajha
  */
-public class TrackerConnectionHandler implements Runnable {
-    private static final Logger logger = LogManager.getLogger(TrackerConnectionHandler.class);
+public class TrackerRequestProcessor implements Runnable {
+    private static final Logger logger = LogManager.getLogger(TrackerRequestProcessor.class);
     private Connection connection;
     private String connectionWith;
     private NodeInfo thisTrackerInfo;
@@ -29,7 +29,7 @@ public class TrackerConnectionHandler implements Runnable {
      * @param connection
      * @param trackerInfo
      */
-    public TrackerConnectionHandler(Connection connection, NodeInfo trackerInfo) {
+    public TrackerRequestProcessor(Connection connection, NodeInfo trackerInfo) {
         this.connection = connection;
         this.thisTrackerInfo = trackerInfo;
         this.metadata = Metadata.getMetadata();
@@ -44,70 +44,90 @@ public class TrackerConnectionHandler implements Runnable {
         while (connection.isConnected()) {
             try {
                 byte[] receivedRequest = connection.receive();
+                // waiting to receive RegisterMessage from host(seeder/lecher).
                 if (receivedRequest != null) {
                     try {
                         Any any = Any.parseFrom(receivedRequest);
                         if (any.is(RegisterMessage.RegisterMessageDetails.class)) {
                             RegisterMessage.RegisterMessageDetails registerMessage =
                                     any.unpack(RegisterMessage.RegisterMessageDetails.class);
-                            logger.info("\nReceived Register Message from " + registerMessage.getSenderName());
+
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                    "] Connection Established with " + registerMessage.getSenderName() +
+                                    " Connection is for the Registration purpose.");
+
                             connectionWith = registerMessage.getSenderName();
-                            // add peer in peer list.
-                            metadata.addNewPeer(registerMessage.getSenderName(),
+                            // add host in hosts list.
+                            metadata.addNewHost(registerMessage.getSenderName(),
                                     registerMessage.getSenderIp(),
                                     registerMessage.getSenderPort());
-                            // create file entry in file list.
-                            logger.info("\nTotal number of Files Available at " + registerMessage.getSenderName() +
-                                    " is " + registerMessage.getNumberOfFilesAvailable());
+
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                    "] Total number of Files Available at " + registerMessage.getSenderName() +
+                                    " is : " + registerMessage.getNumberOfFilesAvailable());
+
+                            // create file entry in file list for all the files available in the host.
                             if (registerMessage.getNumberOfFilesAvailable() > 0) {
                                 List<ByteString> availableFileList = registerMessage.getFileInfoList();
                                 for (ByteString eachFileInfoByteString : availableFileList) {
                                     Any eachFileInfo = Any.parseFrom(eachFileInfoByteString.toByteArray());
                                     if (eachFileInfo.is(FileInfo.FileInfoDetails.class)) {
-                                        FileInfo.FileInfoDetails fileInfoDetails = eachFileInfo.unpack(FileInfo.FileInfoDetails.class);
-                                        logger.info("\nAdding file " + fileInfoDetails.getFileName() + " in the meta data.");
+                                        FileInfo.FileInfoDetails fileInfoDetails =
+                                                eachFileInfo.unpack(FileInfo.FileInfoDetails.class);
                                         metadata.addFile(fileInfoDetails.getFileName(),
                                                 fileInfoDetails.getFileSize(),
                                                 fileInfoDetails.getChecksum().toByteArray(),
                                                 fileInfoDetails.getTotalPackets());
-                                        logger.info("\nAdding this Host To the List of host.");
-                                        // adding this member in the current file swarm.
+                                        // adding this host in the current file hostList.
                                         metadata.addMemberToTheSwarm(fileInfoDetails.getFileName(), connectionWith,
                                                 true);
                                     }
                                 }
                             }
-//                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
-//                                    "] Received register request from " + connectionWith +
-//                                    " of type RequestLeaderAndMembersInfo.");
-                            logger.info("\nSending response to the registerMessage...");
+
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                    "] Sending response to the registerMessage...");
+
+                            // sending response for the register message.
                             Any registerResponse = Any.pack(RegisterResponse.RegisterResponseDetails.newBuilder()
                                     .setSenderName(thisTrackerInfo.getName())
                                     .build());
                             connection.send(registerResponse.toByteArray());
+
                         } else if (any.is(SetupForFileMessage.SetupForFileMessageDetails.class)) {
                             SetupForFileMessage.SetupForFileMessageDetails setupMessage = any.unpack(SetupForFileMessage.SetupForFileMessageDetails.class);
                             connectionWith = setupMessage.getSenderName();
+
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                    "] Connection Established with " + setupMessage.getSenderName() +
+                                    ". Connection is for File RelatedData exchange.");
+
                             // add this host to the file it wants information about
-                            logger.info("\nAdding " + connectionWith + " to the swarm for file " + setupMessage.getFileToBeDownloaded());
-                            metadata.addMemberToTheSwarm(setupMessage.getFileToBeDownloaded(), setupMessage.getSenderName(), false);
+                            boolean added = metadata.addMemberToTheSwarm(setupMessage.getFileToBeDownloaded(),
+                                    setupMessage.getSenderName(), false);
+                            // sending response back to the host
                             Any setupResponse = Any.pack(SetupForFileResponse.SetupForFileResponseDetails.newBuilder()
                                     .setSenderName(thisTrackerInfo.getName())
+                                    .setAdded(added)
                                     .build());
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] added " + added + " for sender " + setupMessage.getSenderName());
                             connection.send(setupResponse.toByteArray());
+
                         } else if (any.is(RequestFileInfo.RequestFileInfoDetails.class)) {
                             RequestFileInfo.RequestFileInfoDetails requestMessage =
                                     any.unpack(RequestFileInfo.RequestFileInfoDetails.class);
                             // extract file name from request message
                             byte[] responseMessage = getResponseForRequestFileDetail(requestMessage);
-//                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Received request from "
-//                                    + connectionWith + " to update Leader info.");
                             connection.send(responseMessage);
+
                         } else if (any.is(UpdateFilePacketMetadataMetadata.UpdateFilePacketMetadataDetails.class)) {
                             UpdateFilePacketMetadataMetadata.UpdateFilePacketMetadataDetails updateRequest =
                                     any.unpack(UpdateFilePacketMetadataMetadata.UpdateFilePacketMetadataDetails.class);
+
                             logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Received request from "
-                                    + connectionWith + " to update membership Information at load-balancer");
+                                    + connectionWith + " to update packet Availability Information for packet "
+                                    + updateRequest.getPacketNumber() + " of file " + updateRequest.getFileName());
+
                             metadata.updateMemberAvailablePacketInfo(updateRequest.getFileName(), connectionWith,
                                     updateRequest.getPacketNumber());
                             Any updateSuccessful = Any.pack(UpdateFilePacketMetadataSuccessful
@@ -116,15 +136,16 @@ public class TrackerConnectionHandler implements Runnable {
                                     .setPacketNumber(updateRequest.getPacketNumber())
                                     .build());
                             connection.send(updateSuccessful.toByteArray());
+
                         }
                     } catch (InvalidProtocolBufferException e) {
                         logger.error("\n[ThreadId : " + Thread.currentThread().getId() + " InvalidProtocolBufferException " +
-                                "occurred decoding message received at loadBalancer. Error Message : "
+                                "occurred decoding message received at Tracker. Error Message : "
                                 + e.getMessage());
                     }
                 }
             } catch (ConnectionClosedException e) {
-                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Closing the connection");
+                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Closing the connection.");
                 connection.closeConnection();
             }
         }
@@ -139,9 +160,19 @@ public class TrackerConnectionHandler implements Runnable {
         // check if file is available at any host.
         List<ByteString> allPeerInfoByteList;
         if (!requestMessage.getDetailForPacket()) {
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                    "] Received Request file detail message from " + requestMessage.getSenderName() +
+                    " For file " + requestMessage.getFileName());
+
             allPeerInfoByteList = metadata.getAllPeerInfoOfASwarm(requestMessage.getFileName());
         } else {
-            allPeerInfoByteList = metadata.getPeerInfoOfASwarmForPacket(requestMessage.getFileName(), requestMessage.getPacketNumber());
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                    "] Received Request Packet detail message from " + requestMessage.getSenderName() +
+                    " For file " + requestMessage.getFileName() + " packet " + requestMessage.getPacketNumber());
+
+            allPeerInfoByteList = metadata.getPeerInfoOfASwarmForPacket(
+                    requestMessage.getFileName(),
+                    requestMessage.getPacketNumber());
         }
         Any fileMetadata;
         if (allPeerInfoByteList.isEmpty()) {

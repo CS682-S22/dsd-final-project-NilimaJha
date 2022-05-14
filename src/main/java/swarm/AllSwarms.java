@@ -1,9 +1,10 @@
-package model;
+package swarm;
 
+import model.NodeInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import peer.RequestProcessor;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -19,6 +20,7 @@ public class AllSwarms {
 
     /**
      * Constructor
+     * @param thisPeerInfo
      */
     private AllSwarms(NodeInfo thisPeerInfo) {
         this.thisPeerInfo = thisPeerInfo;
@@ -38,12 +40,15 @@ public class AllSwarms {
     }
 
     /**
-     * method add a swarm for the new file.
+     * method add a swarm for a new file.
      * @return
      */
     public boolean addNewFileSwarm(String fileName, File file) {
         Swarm swarm = new Swarm(file);
-        fileToItsSwarmMap.putIfAbsent(fileName, swarm);
+        Swarm existingSwarm = fileToItsSwarmMap.putIfAbsent(fileName, swarm);
+        if (existingSwarm == null) {
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Swarm for file " + fileName + " is created successfully.");
+        }
         return true;
     }
 
@@ -59,15 +64,14 @@ public class AllSwarms {
     }
 
     /**
-     *
+     * method returns the data of the given packet number of the given file.
      * @param fileName
      * @param packetNumber
-     * @return
+     * @return packetData
      */
     public byte[] getPacketDataFromFile(String fileName, long packetNumber) {
         byte[] packetData = null;
         if (fileToItsSwarmMap.containsKey(fileName)) {
-            logger.info("\n" + fileName + " available.");
             packetData = fileToItsSwarmMap.get(fileName).getPacketData(packetNumber);
         }
         return packetData;
@@ -95,9 +99,9 @@ public class AllSwarms {
     }
 
     /**
-     *
+     * returns the download status of the given file.
      * @param fileName
-     * @return
+     * @return fileIsBeingDownloaded
      */
     public boolean isBeingDownloaded(String fileName) {
         boolean fileIsBeingDownloaded = false;
@@ -108,10 +112,10 @@ public class AllSwarms {
     }
 
     /**
-     *
+     * checks if the given peer is available in this peer given file Swarm.
      * @param fileName
      * @param peerName
-     * @return
+     * @return peerAvailable
      */
     public boolean peerAvailableInFileSwarm(String fileName, String peerName) {
         boolean peerAvailable = false;
@@ -122,8 +126,8 @@ public class AllSwarms {
     }
 
     /**
-     *
-     * @return
+     * returns the size of the file with given name if exist otherwise 0.
+     * @return fileSize
      */
     public long getFileSize(String fileName) {
         long fileSize = 0;
@@ -134,20 +138,20 @@ public class AllSwarms {
     }
 
     /**
-     *
-     * @return
+     * returns the given file checksum value.
+     * @return checksum
      */
     public byte[] getFileChecksum(String fileName) {
-        byte[] fileSize = null;
+        byte[] checksum = null;
         if (fileToItsSwarmMap.containsKey(fileName)) {
-            fileSize = fileToItsSwarmMap.get(fileName).getChecksum();
+            checksum = fileToItsSwarmMap.get(fileName).getChecksum();
         }
-        return fileSize;
+        return checksum;
     }
 
     /**
-     *
-     * @return
+     * getter for the total packet of a file
+     * @return totalPackets
      */
     public long getFileTotalPackets(String fileName) {
         long totalPackets = 0;
@@ -158,8 +162,8 @@ public class AllSwarms {
     }
 
     /**
-     *
-     * @return
+     * getter for the availabilityStatus of the given packet o the given file.
+     * @return true/false
      */
     public boolean packetOfFileIsAvailable(String fileName, long packetNumber) {
         if (fileToItsSwarmMap.containsKey(fileName)) {
@@ -169,9 +173,9 @@ public class AllSwarms {
     }
 
     /**
-     *
+     * getter for the swarm obj associated with the given file.
      * @param fileName
-     * @return
+     * @return swarm
      */
     public Swarm getSwarm(String fileName) {
         Swarm swarm = null;
@@ -182,7 +186,7 @@ public class AllSwarms {
     }
 
     /**
-     *
+     * updates packetAvailable information of a file for the given packetNumber.
      * @param fileName
      * @param packetNumber
      * @param packetData
@@ -194,5 +198,21 @@ public class AllSwarms {
             markedDownloaded = fileToItsSwarmMap.get(fileName).getFile().markPacketDownloaded(packetNumber, packetData);
         }
         return markedDownloaded;
+    }
+
+    /**
+     * method closes all the connections that was created to the download of the given file from peers.
+     * @param fileName
+     * @return
+     */
+    public boolean closeAllConnection(String fileName) {
+        // close connections used for this downloading from the peer.
+        if (fileToItsSwarmMap.containsKey(fileName)) {
+            Swarm swarm = fileToItsSwarmMap.get(fileName);
+            for(Map.Entry<String, SwarmMemberDetails> eachPeer : swarm.getPeerNameToDetailMap().entrySet()) {
+                swarm.closeConnection(eachPeer.getKey());
+            }
+        }
+        return true;
     }
 }

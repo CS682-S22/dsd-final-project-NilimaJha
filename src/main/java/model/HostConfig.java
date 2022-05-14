@@ -3,7 +3,7 @@ package model;
 import java.util.List;
 
 /**
- *
+ * Config class to store information from Host config file.
  * @author nilimajha
  */
 public class HostConfig {

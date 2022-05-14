@@ -1,15 +1,16 @@
-package model;
+package swarm;
 
+import connection.Connection;
 import customeException.ConnectionClosedException;
+import model.NodeInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import peer.Host;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * PEER
+ * Class to store peer information and connection with that peer.
  * @author nilimajha
  */
 public class SwarmMemberDetails extends NodeInfo {
@@ -19,7 +20,6 @@ public class SwarmMemberDetails extends NodeInfo {
 
     /**
      * Constructor
-     *
      * @param name
      * @param ip
      * @param port
@@ -30,33 +30,42 @@ public class SwarmMemberDetails extends NodeInfo {
     }
 
     /**
-     * method downloads one packet at a time over the connection.
+     * method sends the request, waits for the response and return the response received.
      * @param requestMassage
      */
-    public byte[] downloadPacket(byte[] requestMassage) {
+    public byte[] makeRequestAndGetResponseFromPeer(byte[] requestMassage) {
         byte[] response =  null;
-        if (connection.isConnected()) {
+        if (connection != null && connection.isConnected()) {
             try {
-
-                if(connectionLock.writeLock().tryLock(5, TimeUnit.MILLISECONDS)) {
-                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Acquired Lock.");
+                if(connectionLock.writeLock().tryLock(1, TimeUnit.MILLISECONDS)) {
                     try {
                         connection.send(requestMassage);
-                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] sent download Request.");
                         while (response == null) {
                             response = connection.receive();
                         }
-                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Received some Response.");
                     } catch (ConnectionClosedException e) {
                         e.printStackTrace();
                     }
                     connectionLock.writeLock().unlock();
-                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] releasing Lock.");
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
         return response;
+    }
+
+    /**
+     * method closes the connection with the peer.
+     */
+    public boolean closeConnection() {
+       connectionLock.writeLock().lock();
+       if (connection != null && connection.isConnected()) {
+           logger.info("\nClosing the connection with peer " + getName());
+           connection.closeConnection();
+           connection = null;
+       }
+       connectionLock.writeLock().unlock();
+       return true;
     }
 }

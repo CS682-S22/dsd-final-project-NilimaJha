@@ -41,6 +41,12 @@ public final class SetupForFileResponse {
      */
     com.google.protobuf.ByteString
         getFileNameBytes();
+
+    /**
+     * <code>bool added = 3;</code>
+     * @return The added.
+     */
+    boolean getAdded();
   }
   /**
    * Protobuf type {@code tutorial.SetupForFileResponseDetails}
@@ -99,6 +105,11 @@ public final class SetupForFileResponse {
               java.lang.String s = input.readStringRequireUtf8();
 
               fileName_ = s;
+              break;
+            }
+            case 24: {
+
+              added_ = input.readBool();
               break;
             }
             default: {
@@ -209,6 +220,17 @@ public final class SetupForFileResponse {
       }
     }
 
+    public static final int ADDED_FIELD_NUMBER = 3;
+    private boolean added_;
+    /**
+     * <code>bool added = 3;</code>
+     * @return The added.
+     */
+    @java.lang.Override
+    public boolean getAdded() {
+      return added_;
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -229,6 +251,9 @@ public final class SetupForFileResponse {
       if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(fileName_)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 2, fileName_);
       }
+      if (added_ != false) {
+        output.writeBool(3, added_);
+      }
       unknownFields.writeTo(output);
     }
 
@@ -243,6 +268,10 @@ public final class SetupForFileResponse {
       }
       if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(fileName_)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, fileName_);
+      }
+      if (added_ != false) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(3, added_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -263,6 +292,8 @@ public final class SetupForFileResponse {
           .equals(other.getSenderName())) return false;
       if (!getFileName()
           .equals(other.getFileName())) return false;
+      if (getAdded()
+          != other.getAdded()) return false;
       if (!unknownFields.equals(other.unknownFields)) return false;
       return true;
     }
@@ -278,6 +309,9 @@ public final class SetupForFileResponse {
       hash = (53 * hash) + getSenderName().hashCode();
       hash = (37 * hash) + FILENAME_FIELD_NUMBER;
       hash = (53 * hash) + getFileName().hashCode();
+      hash = (37 * hash) + ADDED_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+          getAdded());
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -415,6 +449,8 @@ public final class SetupForFileResponse {
 
         fileName_ = "";
 
+        added_ = false;
+
         return this;
       }
 
@@ -443,6 +479,7 @@ public final class SetupForFileResponse {
         proto.SetupForFileResponse.SetupForFileResponseDetails result = new proto.SetupForFileResponse.SetupForFileResponseDetails(this);
         result.senderName_ = senderName_;
         result.fileName_ = fileName_;
+        result.added_ = added_;
         onBuilt();
         return result;
       }
@@ -498,6 +535,9 @@ public final class SetupForFileResponse {
         if (!other.getFileName().isEmpty()) {
           fileName_ = other.fileName_;
           onChanged();
+        }
+        if (other.getAdded() != false) {
+          setAdded(other.getAdded());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -679,6 +719,37 @@ public final class SetupForFileResponse {
         onChanged();
         return this;
       }
+
+      private boolean added_ ;
+      /**
+       * <code>bool added = 3;</code>
+       * @return The added.
+       */
+      @java.lang.Override
+      public boolean getAdded() {
+        return added_;
+      }
+      /**
+       * <code>bool added = 3;</code>
+       * @param value The added to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAdded(boolean value) {
+        
+        added_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bool added = 3;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAdded() {
+        
+        added_ = false;
+        onChanged();
+        return this;
+      }
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -746,10 +817,11 @@ public final class SetupForFileResponse {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\032SetupForFileResponse.proto\022\010tutorial\"C" +
+      "\n\032SetupForFileResponse.proto\022\010tutorial\"R" +
       "\n\033SetupForFileResponseDetails\022\022\n\nsenderN" +
-      "ame\030\001 \001(\t\022\020\n\010fileName\030\002 \001(\tB\035\n\005protoB\024Se" +
-      "tupForFileResponseb\006proto3"
+      "ame\030\001 \001(\t\022\020\n\010fileName\030\002 \001(\t\022\r\n\005added\030\003 \001" +
+      "(\010B\035\n\005protoB\024SetupForFileResponseb\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -760,7 +832,7 @@ public final class SetupForFileResponse {
     internal_static_tutorial_SetupForFileResponseDetails_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_tutorial_SetupForFileResponseDetails_descriptor,
-        new java.lang.String[] { "SenderName", "FileName", });
+        new java.lang.String[] { "SenderName", "FileName", "Added", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

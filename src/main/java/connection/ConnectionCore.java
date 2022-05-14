@@ -1,4 +1,4 @@
-package model;
+package connection;
 
 import customeException.ConnectionClosedException;
 import org.apache.logging.log4j.LogManager;
@@ -21,8 +21,8 @@ import java.util.concurrent.TimeoutException;
  * and stores related information.
  * @author nilimajha
  */
-public class Connection {
-    private static final Logger logger = LogManager.getLogger(Connection.class);
+public class ConnectionCore {
+    private static final Logger logger = LogManager.getLogger(ConnectionCore.class);
     private AsynchronousSocketChannel connectionSocket;
     private boolean isConnected;
     private Future<Integer> incomingMessage;
@@ -33,7 +33,7 @@ public class Connection {
      * Constructor to initialise class attributes.
      * @param connectionSocket
      */
-    public Connection(AsynchronousSocketChannel connectionSocket) {
+    public ConnectionCore(AsynchronousSocketChannel connectionSocket) {
         this.connectionSocket = connectionSocket;
         this.isConnected = true;
         this.incomingMessage = this.connectionSocket.read(buffer);
