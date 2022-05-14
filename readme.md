@@ -1,12 +1,12 @@
 ##*A version of BitTorrent*##
 
-I will be developing a distributed leaderless peer-to-peer file-sharing system for this project.
+I will be developing a distributed leaderless host-to-host file-sharing system for this project.
 The idea for this project is derived from BitTorrent, which is available for concurrently sharing files among peers. 
 
 ###**Components:**###
 
 *1. Tracker node:*  There will be one Tracker node. It will have the information of all the available peers and the file stored at them, along with other file-related data.
-*2. Peers:* There will be multiple Peers in this system. Each peer node will be involved in downloading and uploading the file concurrently.
+*2. Peers:* There will be multiple Peers in this system. Each host node will be involved in downloading and uploading the file concurrently.
 
 ###**Startup:**###
 
