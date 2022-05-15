@@ -187,58 +187,20 @@ public class Utility {
     }
 
     /**
-     * initialises the FileInputStream named fileWriter of the class and deletes the file if already exist.
-     * @param outputFileName file on which writting is to be performed
-     */
-    public static FileOutputStream fileWriterInitializer (String outputFileName) {
-        File outputFile = new File(outputFileName);
-        FileOutputStream fileWriter = null;
-        if(outputFile.exists()){
-            outputFile.delete();
-        }  //deleting file if exist
-        try {
-            fileWriter = new FileOutputStream(outputFileName, true);
-        } catch (FileNotFoundException e) {
-            logger.error("\nFileNotFoundException occurred while Initialising FileOutPutStream for file "
-                    + outputFileName + ". Error Message : " + e.getMessage());
-        }
-        return fileWriter;
-    }
-
-    /**
-     * initialises the FileInputStream named fileReader of the class.
-     * @param inputFileName file from where read is to be performed
-     * @return fileReader
-     */
-    public static BufferedReader fileReaderInitializer (String inputFileName) {
-        BufferedReader bufferedReader = null;
-        try {
-            bufferedReader = new BufferedReader(new FileReader(inputFileName));
-        } catch (IOException e) {
-            logger.error("\nIOException occurred while initialising BufferedReader on file " + inputFileName +
-                    ". Error Message : " + e.getMessage());
-        }
-        return bufferedReader;
-    }
-
-    /**
      * tries to establish connection with the host running on the given IP and Port.
      * @param nodeIP
      * @param nodePort
      * @return Connection or null
      */
     public static Connection establishConnection(String nodeIP, int nodePort, boolean delay, int maxDelay) throws ConnectionClosedException {
-        logger.info("\nNow will connect.....");
         AsynchronousSocketChannel clientSocket = null;
         Connection connection = null;
         try {
             clientSocket = AsynchronousSocketChannel.open();
             InetSocketAddress brokerAddress = new InetSocketAddress(nodeIP, nodePort);
-            logger.info("\n[Connecting] Host at IP : "
-                    + nodeIP + " Port : " + nodePort);
+//            logger.info("\n[Connecting] Host at IP : " + nodeIP + " Port : " + nodePort);
             Future<Void> futureSocket = clientSocket.connect(brokerAddress);
             futureSocket.get();
-            logger.info("\n[Connected to node.]");
             connection = new Connection(clientSocket, delay, maxDelay); //connection established with this member.
         } catch (IOException | ExecutionException | InterruptedException e) {
             logger.error(e.getMessage());
@@ -264,12 +226,32 @@ public class Utility {
                 }
                 checksum = digest.digest();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("\nThreadId : " + Thread.currentThread().getId() +
+                        "] IOException occurred. Error Message : " + e.getMessage());
             }
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            logger.error("\nThreadId : " + Thread.currentThread().getId() +
+                    "] NoSuchAlgorithmException occurred. Error Message : " + e.getMessage());
         }
         return checksum;
+    }
+
+    /**
+     * compare two checksum value.
+     * @return true/false
+     */
+    public static boolean matchChecksum (byte[] checksum, String fileName) {
+        int i = 0;
+        while (i < checksum.length) {
+            byte[] createdChecksum = createChecksum(fileName);
+            if (createdChecksum == null) {
+                return false;
+            } else if (checksum[i] != createdChecksum[i]) {
+                return false;
+            }
+            i++;
+        }
+        return true;
     }
 
     /**
@@ -290,7 +272,6 @@ public class Utility {
      * @return packetOffset
      */
     public static long offsetCalculator(long packetNumber) {
-        long packetOffset = packetNumber * Constants.MAX_PACKET_SIZE;
-        return packetOffset;
+        return packetNumber * Constants.MAX_PACKET_SIZE;
     }
 }

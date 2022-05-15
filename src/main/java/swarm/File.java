@@ -237,13 +237,9 @@ public class File {
     public byte[] getPacketData(long packetNumber) {
         byte[] packetData = null;
         if (entireFileAvailable && packetNumber < totalPackets) {
-//            logger.info("\nPacket number " + packetNumber + " available.");
             packetData = readFromFinalFile(packetNumber);
         } else if (!entireFileAvailable) {
-//            logger.info("\nPacket number " + packetNumber + " available in temp file.");
             packetData = readFromTempFile(packetNumber);
-        } else {
-//            logger.info("\nPacket number " + packetNumber + " is not available.");
         }
         return packetData;
     }
@@ -253,7 +249,6 @@ public class File {
      * @return
      */
     public boolean rearrangePackets() throws IOException {
-//        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] starting rearranging packets for file " + fileName);
         if (eachDownloadedPacketInfo.size() == totalPackets) {
             long rearrangedPacketNumber = 0;
             finalFileWriterLock.writeLock().lock();
@@ -262,12 +257,12 @@ public class File {
                 long currentPacketOffset = eachDownloadedPacketInfo.get(rearrangedPacketNumber).getInitialOffset();
                 byte[] packetMessage = new byte[(int) eachDownloadedPacketInfo.get(rearrangedPacketNumber).getPacketSize()];
                 tempFileReader.getChannel().position(currentPacketOffset);
-//                logger.info("\nReading data from offset " + currentPacketOffset + " from temp file.");
                 tempFileReader.read(packetMessage);
                 tempFileReaderLock.writeLock().unlock();
                 writeOnFinalFile(packetMessage);
                 rearrangedPacketNumber++;
             }
+            boolean fileNotCorrupted = Utility.matchChecksum(checksum, fileName);
             entireFileAvailable = true;
             fileReaderCloser(tempFileReader);
             fileWriterCloser(tempFileWriter);
@@ -328,7 +323,7 @@ public class File {
      * @return true/false
      */
     public boolean packetIsAvailable(long packetNumber) {
-        return !isBeingDownloaded() || eachDownloadedPacketInfo.containsKey(packetNumber);
+        return (packetNumber < totalPackets) && (!isBeingDownloaded() || eachDownloadedPacketInfo.containsKey(packetNumber));
     }
 
     /**
@@ -381,5 +376,37 @@ public class File {
      */
     public void printDownloadPercentage() {
         logger.info("\n----------------------File : " + fileName + " ---------> DOWNLOAD PERCENTAGE : " + downloadPercentage + "%");
+    }
+
+    /**
+     * getter for the finalFileReader.
+     * @return finalFileReader
+     */
+    public FileInputStream getFinalFileReader() {
+        return finalFileReader;
+    }
+
+    /**
+     * getter for the finalFileWriter
+     * @return finalFileWriter
+     */
+    public FileOutputStream getFinalFileWriter() {
+        return finalFileWriter;
+    }
+
+    /**
+     * getter for the tempFileReader
+     * @return tempFileReader
+     */
+    public FileInputStream getTempFileReader() {
+        return tempFileReader;
+    }
+
+    /**
+     * getter for the tempFileWriter
+     * @return tempFileWriter
+     */
+    public FileOutputStream getTempFileWriter() {
+        return tempFileWriter;
     }
 }

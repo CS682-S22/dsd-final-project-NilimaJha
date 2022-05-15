@@ -107,7 +107,7 @@ public class Metadata {
         if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
             List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName).getAllPeerNameList();
 
-            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "]1111 List Of Host for file "
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] List Of Host for file "
                     + fileName + " is " + swarmMemberNameList);
 
             for (String eachMemberName : swarmMemberNameList) {
