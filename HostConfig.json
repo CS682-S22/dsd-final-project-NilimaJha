@@ -1,0 +1,117 @@
+[
+	{
+		"NodeName": "HOST-1",
+		"NodeIP": "localhost",
+		"NodePort": 8080,
+		"TrackerNodeName" : "TRACKER_NODE",
+		"TrackerNodeIp" : "localhost",
+		"TrackerNodePort" : 9090,
+		"AvailableFiles" :
+		[
+			"file1.jpg",
+			"file2.mov",
+			"file3.jpg"
+		],
+		"Download" :
+		[
+			"file4.mov",
+			"file5.mov"
+		]
+	},
+	{
+		"NodeName": "HOST-2",
+		"NodeIP": "localhost",
+		"NodePort": 8084,
+		"TrackerNodeName" : "TRACKER_NODE",
+		"TrackerNodeIp" : "localhost",
+		"TrackerNodePort" : 9090,
+		"AvailableFiles" :
+		[
+			"file1.jpg",
+			"file4.mov"
+		],
+		"Download" :
+		[
+			"file2.mov",
+			"file5.mov"
+		]
+	},
+	{
+		"NodeName": "HOST-3",
+		"NodeIP": "localhost",
+		"NodePort": 8086,
+		"TrackerNodeName" : "TRACKER_NODE",
+		"TrackerNodeIp" : "localhost",
+		"TrackerNodePort" : 9090,
+		"AvailableFiles" :
+		[
+			"file5.mov",
+			"file6.mov"
+		],
+		"Download" :
+		[
+			"file1.jpg",
+			"file2.mov"
+		]
+	},
+	{
+		"NodeName": "HOST-4",
+		"NodeIP": "localhost",
+		"NodePort": 8088,
+		"TrackerNodeName" : "TRACKER_NODE",
+		"TrackerNodeIp" : "localhost",
+		"TrackerNodePort" : 9090,
+		"AvailableFiles" :
+		[
+			"file3.jpg"
+		],
+		"Download" :
+		[
+			"file1.jpg"
+		]
+	},
+	{
+		"NodeName": "HOST-5",
+		"NodeIP": "localhost",
+		"NodePort": 8090,
+		"TrackerNodeName" : "TRACKER_NODE",
+		"TrackerNodeIp" : "localhost",
+		"TrackerNodePort" : 9090,
+		"Download" :
+		[
+			"file1.jpg",
+			"file3.jpg"
+		]
+	},
+	{
+		"NodeName": "HOST-7",
+		"NodeIP": "localhost",
+		"NodePort": 8087,
+		"TrackerNodeName" : "TRACKER_NODE",
+		"TrackerNodeIp" : "localhost",
+		"TrackerNodePort" : 9090,
+		"AvailableFiles" :
+		[
+			"file1.jpg"
+		]
+	},
+	{
+		"NodeName": "HOST-6",
+		"NodeIP": "localhost",
+		"NodePort": 8089,
+		"TrackerNodeName" : "TRACKER_NODE",
+		"TrackerNodeIp" : "localhost",
+		"TrackerNodePort" : 9090,
+		"AvailableFiles" :
+		[
+			"file1.jpg",
+			"file2.mov",
+			"file3.jpg",
+			"file4.mov"
+		],
+		"Download" :
+		[
+			"file5.mov"
+		]
+	}
+]

@@ -1,0 +1,7 @@
+[
+	{
+		"Name": "TRACKER_NODE",
+		"TrackerNodeIP" : "localhost",
+		"TrackerNodePort" : 9090
+	}
+]
