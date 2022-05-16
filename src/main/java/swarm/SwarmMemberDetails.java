@@ -56,6 +56,16 @@ public class SwarmMemberDetails extends NodeInfo {
     }
 
     /**
+     * setter for the attribute connection.
+     * @param connection
+     */
+    public void setConnection(Connection connection) {
+        if (this.connection == null) {
+            this.connection = connection;
+        }
+    }
+
+    /**
      * method closes the connection with the peer.
      */
     public boolean closeConnection() {

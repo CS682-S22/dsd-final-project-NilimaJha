@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Swarm {
     private static final Logger logger = LogManager.getLogger(Swarm.class);
     private ConcurrentHashMap<String, SwarmMemberDetails> peerNameToDetailMap;
+    private ConcurrentHashMap<String, SwarmMemberDetails> potentialPeer;
     private File file;
 
     /**

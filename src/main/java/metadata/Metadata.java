@@ -70,7 +70,7 @@ public class Metadata {
     /**
      * add new member to the swarm for a given file.
      * @param fileName
-     * @return
+     * @return true/false
      */
     public boolean addMemberToTheSwarm(String fileName, String peerName, boolean entireFileAvailable) {
         boolean added = false;

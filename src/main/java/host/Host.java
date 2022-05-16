@@ -423,6 +423,7 @@ public class Host implements Runnable {
 //                                "] Got information from Tracker for packet " + nextPacketNumber + " of File " + fileName);
                         FileMetadata.FileMetadataDetails packetDetails = packetInfoResponse.unpack(FileMetadata.FileMetadataDetails.class);
                         List<ByteString> swarmMembersInfoWithThisPacket = packetDetails.getSwarmMemberInfoList();
+
                         // extracting the name of the peer in the swarm with the packet.
                         List<String> swarmMembersNameWithThisPacket = new ArrayList<>();
                         for (ByteString eachMemberInfo : swarmMembersInfoWithThisPacket) {
@@ -432,6 +433,56 @@ public class Host implements Runnable {
                                         swarmMemberInfo.unpack(SwarmMemberInfo.SwarmMemberInfoDetails.class);
                                 if (!swarmMemberInfoDetails.getPeerName().equals(thisNodeInfo.getName())) {
                                     swarmMembersNameWithThisPacket.add(swarmMemberInfoDetails.getPeerName());
+                                    // peer is not available in the swarm adding the peer.
+                                    if (!allSwarms.peerAvailableInFileSwarm(fileName, swarmMemberInfoDetails.getPeerName())) {
+                                        SwarmMemberDetails newSwarmMember = new SwarmMemberDetails(
+                                                swarmMemberInfoDetails.getPeerName(),
+                                                swarmMemberInfoDetails.getPeerIp(),
+                                                swarmMemberInfoDetails.getPeerPort(),
+                                                null);
+                                        allSwarms.addNewPeerInTheFileSwarm(fileName, newSwarmMember);
+                                        Connection connection = null;
+                                        try {
+                                            connection = Utility.establishConnection(
+                                                    swarmMemberInfoDetails.getPeerIp(),
+                                                    swarmMemberInfoDetails.getPeerPort(),
+                                                    delay,
+                                                    maxDelay);
+                                            if (connection != null) {
+                                                // do initial setup
+                                                Any initialMessage = Any.pack(InitialMessage.InitialMessageDetails
+                                                        .newBuilder()
+                                                        .setPeerName(thisNodeInfo.getName())
+                                                        .setPeerIp(thisNodeInfo.getIp())
+                                                        .setPeerPort(thisNodeInfo.getPort())
+                                                        .setFileToDownload(fileName)
+                                                        .build());
+                                                connection.send(initialMessage.toByteArray());
+                                                byte[] responseReceived = null;
+                                                while (responseReceived == null) {
+                                                    responseReceived = connection.receive();
+                                                }
+                                                Any initialMessageResponse = Any.parseFrom(response);
+                                                if (initialMessageResponse.is(InitialSetupDoneAck.InitialSetupDoneAckDetail.class)) {
+                                                    InitialSetupDoneAck.InitialSetupDoneAckDetail initialSetupDoneAckDetail
+                                                            = initialMessageResponse.unpack(InitialSetupDoneAck.InitialSetupDoneAckDetail.class);
+//                                                    logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+//                                                            "] For file " + fileName + " connected to "
+//                                                            + swarmMemberInfoDetails.getPeerName());
+                                                }
+                                            }
+                                        } catch (ConnectionClosedException e) {
+                                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] "
+                                                    + e.getMessage());
+                                        }
+                                        if (connection != null) {
+                                            allSwarms.getSwarm(fileName).getPeerNode(swarmMemberInfoDetails.getPeerName())
+                                                    .setConnection(connection);
+                                        } else {
+                                            allSwarms.getSwarm(fileName).getPeerNameToDetailMap()
+                                                    .remove(swarmMemberInfoDetails.getPeerName());
+                                        }
+                                    }
                                 }
                             }
                         }
