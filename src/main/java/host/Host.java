@@ -233,6 +233,7 @@ public class Host implements Runnable {
         private String fileName;
         private NodeInfo trackerNodeInfo;
         private AllSwarms allSwarms = AllSwarms.getAllSwarm(thisNodeInfo);
+        private volatile boolean downloadStatusPrinted = false;
         private ConnectionWithTracker connectionWithTracker;
 
         /**
@@ -484,8 +485,9 @@ public class Host implements Runnable {
                                                 break;
                                             }
 
-                                            if (!allSwarms.isBeingDownloaded(fileName)) {
-                                                logger.info("\nDownload successful");
+                                            if (!allSwarms.isBeingDownloaded(fileName) && !downloadStatusPrinted) {
+                                                logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                                        "] File " + fileName + " Successfully Downloaded...");
                                                 allSwarms.closeAllConnection(fileName);
                                                 // close connection with tracker for this file.
                                                 connectionWithTracker.closeConnection();

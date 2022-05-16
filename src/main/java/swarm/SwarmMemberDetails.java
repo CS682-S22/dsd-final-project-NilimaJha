@@ -61,7 +61,8 @@ public class SwarmMemberDetails extends NodeInfo {
     public boolean closeConnection() {
        connectionLock.writeLock().lock();
        if (connection != null && connection.isConnected()) {
-           logger.info("\nClosing the connection with peer " + getName());
+           logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                   "] Closing the connection with peer " + getName());
            connection.closeConnection();
            connection = null;
        }

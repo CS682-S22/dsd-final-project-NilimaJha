@@ -101,7 +101,8 @@ public class ConnectionWithTracker {
      */
     public synchronized boolean closeConnection() {
         if (trackerConnection != null && trackerConnection.isConnected()) {
-            logger.info("\nClosing the tracker connection.");
+            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                    "] Closing the connection with Tracker.");
             trackerConnection.closeConnection();
         }
         return true;

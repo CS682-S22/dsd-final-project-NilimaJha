@@ -202,9 +202,9 @@ public class HostRequestProcessor implements Runnable {
                         if (any.is(DownloadRequest.DownloadRequestDetail.class)) {
                             DownloadRequest.DownloadRequestDetail downloadRequestMessage =
                                     any.unpack(DownloadRequest.DownloadRequestDetail.class);
-//                            logger.info("\n[ThreadId: " + Thread.currentThread().getId() +
-//                                    "] Received Download Request for packet " + downloadRequestMessage.getPacketNumber()
-//                                    + " of file " + fileName + " from " + peerNodeInfo.getName());
+                            logger.info("\n[ThreadId: " + Thread.currentThread().getId() +
+                                    "] Received Download Request for packet " + downloadRequestMessage.getPacketNumber()
+                                    + " of file " + fileName + " from " + peerNodeInfo.getName());
                             // getting packet data of the file from the allSwarm.
                             byte[] packetData = allSwarms.getPacketDataFromFile(downloadRequestMessage.getFileName(),
                                     downloadRequestMessage.getPacketNumber());
