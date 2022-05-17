@@ -80,7 +80,7 @@ public class ConnectionCore {
                     }
                 } else {
                     if (readHaveSomething == -1) {
-                        logger.info("\nClosing the connection....");
+                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] Closing the connection....");
                         closeConnection();
                     }
                 }

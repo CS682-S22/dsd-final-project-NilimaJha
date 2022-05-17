@@ -44,12 +44,13 @@ public class SwarmMemberDetails extends NodeInfo {
                             response = connection.receive();
                         }
                     } catch (ConnectionClosedException e) {
-                        e.printStackTrace();
+                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] message :" + e.getMessage());
                     }
                     connectionLock.writeLock().unlock();
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                        "] InterruptedException occurred. Error Message : " + e.getMessage());
             }
         }
         return response;

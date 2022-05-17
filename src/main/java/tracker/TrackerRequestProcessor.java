@@ -110,7 +110,8 @@ public class TrackerRequestProcessor implements Runnable {
                                     .setSenderName(thisTrackerInfo.getName())
                                     .setAdded(added)
                                     .build());
-                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] added " + added + " for sender " + setupMessage.getSenderName());
+                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] added " + added +
+                                    " for sender " + setupMessage.getSenderName());
                             connection.send(setupResponse.toByteArray());
 
                         } else if (any.is(RequestFileInfo.RequestFileInfoDetails.class)) {

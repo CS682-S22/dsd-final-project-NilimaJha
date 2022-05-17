@@ -46,7 +46,8 @@ public class FileSwarmDetails {
         FileAvailabilityDetails fileAvailabilityDetails = peerNameToFileAvailabilityDetailsMap.putIfAbsent(peerName, hostFileAvailabilityDetails);
         if (fileAvailabilityDetails == null) {
             logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] New host " + peerName +
-                    " is added to the list of host for file " + fileName);
+                    " is added to the list of host for file " + fileName +
+                    " entire file available :" + hostFileAvailabilityDetails.isEntireFileAvailable());
         }
         return true;
     }
@@ -71,7 +72,6 @@ public class FileSwarmDetails {
         for (Map.Entry<String, FileAvailabilityDetails> eachPeer : peerNameToFileAvailabilityDetailsMap.entrySet()) {
             peerNameList.add(eachPeer.getKey());
         }
-        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] PeerNameList " + peerNameList);
         return peerNameList;
     }
 
@@ -87,8 +87,6 @@ public class FileSwarmDetails {
                 peerNameList.add(eachPeer.getKey());
             }
         }
-        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] PeerNameList for packet "
-                + packetNumber + " of file " + fileName + " is " + peerNameList);
         return peerNameList;
     }
 

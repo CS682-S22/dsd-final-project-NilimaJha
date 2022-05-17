@@ -79,8 +79,6 @@ public class Metadata {
                 added = fileNameToFileSwarmDetailsMap.get(fileName).addMemberInSwarm(peerName, entireFileAvailable);
             }
         }
-        logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] added status :" + added +
-                " file name " + fileName + " is not available in the map.");
         return added;
     }
 
@@ -103,15 +101,9 @@ public class Metadata {
      */
     public List<ByteString> getAllPeerInfoOfASwarm(String fileName) {
         List<ByteString> swarmMemberInfoList = new ArrayList<>();
-
         if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
             List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName).getAllPeerNameList();
-
-            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] List Of Host for file "
-                    + fileName + " is " + swarmMemberNameList);
-
             for (String eachMemberName : swarmMemberNameList) {
-                logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] file " + eachMemberName);
                 if (availableHostsNameToDetailMap.containsKey(eachMemberName)) {
                     Any swarmMemberInfo = Any.pack(SwarmMemberInfo.SwarmMemberInfoDetails.newBuilder()
                             .setPeerName(availableHostsNameToDetailMap.get(eachMemberName).getName())
@@ -133,11 +125,8 @@ public class Metadata {
     public List<ByteString> getPeerInfoOfASwarmForPacket(String fileName, long packetNumber) {
         List<ByteString> swarmMemberInfoList = new ArrayList<>();
         if (fileNameToFileSwarmDetailsMap.containsKey(fileName)) {
-            List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName).getPeerNameListWithGivenPacket(packetNumber);
-
-            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] List Of Host for packet "
-                    + packetNumber + " of file " + fileName + " is " + swarmMemberNameList);
-
+            List<String> swarmMemberNameList = fileNameToFileSwarmDetailsMap.get(fileName)
+                    .getPeerNameListWithGivenPacket(packetNumber);
             for (String eachMemberName : swarmMemberNameList) {
                 if (availableHostsNameToDetailMap.containsKey(eachMemberName)) {
                     Any swarmMemberInfo = Any.pack(SwarmMemberInfo.SwarmMemberInfoDetails.newBuilder()

@@ -3,6 +3,7 @@ package swarm;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -12,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Swarm {
     private static final Logger logger = LogManager.getLogger(Swarm.class);
     private ConcurrentHashMap<String, SwarmMemberDetails> peerNameToDetailMap;
-    private ConcurrentHashMap<String, SwarmMemberDetails> potentialPeer;
     private File file;
 
     /**
@@ -129,6 +129,16 @@ public class Swarm {
     public ConcurrentHashMap<String, SwarmMemberDetails> getPeerNameToDetailMap() {
         return peerNameToDetailMap;
     }
+
+//    /**
+//     * getter for the attribute peerNameToDetailMap.
+//     * @return peerNameToDetailMap
+//     */
+//    public boolean activePeerAvailable() {
+//        for (Map.Entry<String, SwarmMemberDetails> eachPeer : peerNameToDetailMap.entrySet()) {
+//
+//        }
+//    }
 
     /**
      * closes the connection with the peer of given name.

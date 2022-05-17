@@ -377,7 +377,8 @@ public class Host implements Runnable {
                                                 allSwarms.addNewPeerInTheFileSwarm(fileInfo.getFileName(), swarmMemberDetails);
                                             }
                                         } catch (ConnectionClosedException e) {
-                                            e.printStackTrace();
+                                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() + "] "
+                                                    + e.getMessage());
                                         }
                                     }
                                 }
@@ -419,8 +420,8 @@ public class Host implements Runnable {
                 try {
                     Any packetInfoResponse = Any.parseFrom(response);
                     if (packetInfoResponse.is(FileMetadata.FileMetadataDetails.class)) {
-//                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
-//                                "] Got information from Tracker for packet " + nextPacketNumber + " of File " + fileName);
+                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                "] Got information from Tracker for packet " + nextPacketNumber + " of File " + fileName);
                         FileMetadata.FileMetadataDetails packetDetails = packetInfoResponse.unpack(FileMetadata.FileMetadataDetails.class);
                         List<ByteString> swarmMembersInfoWithThisPacket = packetDetails.getSwarmMemberInfoList();
 
@@ -435,6 +436,9 @@ public class Host implements Runnable {
                                     swarmMembersNameWithThisPacket.add(swarmMemberInfoDetails.getPeerName());
                                     // peer is not available in the swarm adding the peer.
                                     if (!allSwarms.peerAvailableInFileSwarm(fileName, swarmMemberInfoDetails.getPeerName())) {
+                                        logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                                "] member not available in the swarm of  " + fileName +
+                                                ", " + swarmMemberInfoDetails.getPeerName());
                                         SwarmMemberDetails newSwarmMember = new SwarmMemberDetails(
                                                 swarmMemberInfoDetails.getPeerName(),
                                                 swarmMemberInfoDetails.getPeerIp(),
@@ -443,6 +447,8 @@ public class Host implements Runnable {
                                         allSwarms.addNewPeerInTheFileSwarm(fileName, newSwarmMember);
                                         Connection connection = null;
                                         try {
+                                            logger.info("\n[ThreadId : " + Thread.currentThread().getId() +
+                                                    "] connecting to new peer " + swarmMemberInfoDetails.getPeerName());
                                             connection = Utility.establishConnection(
                                                     swarmMemberInfoDetails.getPeerIp(),
                                                     swarmMemberInfoDetails.getPeerPort(),
@@ -494,16 +500,18 @@ public class Host implements Runnable {
                                 .setFileName(fileName)
                                 .setPacketNumber(nextPacketNumber)
                                 .build());
-                        while (!allSwarms.packetOfFileIsAvailable(fileName, nextPacketNumber)) {
-                            logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] file "
-                            + fileName + " packet " + nextPacketNumber + " available at "
-                            + swarmMembersNameWithThisPacket);
+                        int retries = 0;
+                        while (!allSwarms.packetOfFileIsAvailable(fileName, nextPacketNumber) && retries < Constants.MAX_RETRIES) {
+//                            logger.info("\n[ThreadId : " +Thread.currentThread().getId() + "] file "
+//                            + fileName + " packet " + nextPacketNumber + " available at "
+//                            + swarmMembersNameWithThisPacket);
 
                             // downloading packet from peer.
                             for (String peerName : swarmMembersNameWithThisPacket) {
                                 Swarm swarm = allSwarms.getSwarm(fileName);
                                 if (swarm.isAPeer(peerName)) {
-                                    byte[] downloadResponse = swarm.getPeerNode(peerName).makeRequestAndGetResponseFromPeer(downloadRequest.toByteArray());
+                                    byte[] downloadResponse = swarm.getPeerNode(peerName)
+                                            .makeRequestAndGetResponseFromPeer(downloadRequest.toByteArray());
                                     if (downloadResponse != null) {
                                         Any any = Any.parseFrom(downloadResponse);
                                         if (any.is(DownloadRequestResponse.DownloadRequestResponseDetail.class)) {
@@ -547,6 +555,7 @@ public class Host implements Runnable {
                                     }
                                 }
                             }
+                            retries++;
                         }
                     }
                 } catch (InvalidProtocolBufferException e) {
